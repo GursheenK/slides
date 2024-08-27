@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+		/* Language and Environment */
+		"target": "ES6",
+		"lib": ["ES6", "DOM", "DOM.Iterable"],
+		"jsx": "preserve",
+		"useDefineForClassFields": true,
+
+		/* Modules */
+		"module": "ESNext",
+		"moduleResolution": "node10",
+		"paths": { "@/*": ["./src/*"] },
+		"resolveJsonModule": true,
+
+		/* JavaScript Support */
+		"allowJs": true,
+
+		/* Emit */
+		"sourceMap": true,
+		"importHelpers": true,
+
+		/* Interop Constraints */
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		/* Type Checking */
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+
+		/* Completeness */
+		"skipLibCheck": true
+	}
+}
