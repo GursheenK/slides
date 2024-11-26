@@ -6,7 +6,9 @@ module.exports = {
 		'./node_modules/frappe-ui/src/components/**/*.{vue,js,ts,jsx,tsx}',
 	],
 	theme: {
-		extend: {},
+		theme: {
+			extend: {},
+		},
 	},
 	plugins: [],
 }
