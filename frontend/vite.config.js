@@ -8,14 +8,19 @@ export default defineConfig({
 	define: {
 		__VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
 	},
-	plugins: [frappeui({ source: '^/(app|login|api|assets|files|private)' }), vue()],
+	plugins: [
+		frappeui({
+			source: '^/(app|login|api|assets|files|private)',
+		}),
+		vue(),
+	],
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, 'src'),
 		},
 	},
 	build: {
-		outDir: `../${path.basename(path.resolve('..'))}/public/frontend`,
+		outDir: `../slides/public/frontend`,
 		target: 'es2015',
 		emptyOutDir: true,
 		sourcemap: true,
@@ -25,9 +30,6 @@ export default defineConfig({
 					'frappe-ui': ['frappe-ui'],
 				},
 			},
-		},
-		commonjsOptions: {
-			include: [/tailwind.config.js/, /node_modules/],
 		},
 	},
 	optimizeDeps: {
