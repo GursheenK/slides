@@ -1300,9 +1300,9 @@ camelcase-css@^2.0.1:
   integrity sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==
 
 caniuse-lite@^1.0.30001646, caniuse-lite@^1.0.30001688:
-  version "1.0.30001689"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001689.tgz#67ca960dd5f443903e19949aeacc9d28f6e10910"
-  integrity sha512-CmeR2VBycfa+5/jOfnp/NpWPGd06nf1XYiefUvhXFfZE4GkRc9jv+eGPS4nT558WS/8lYCzV8SlANCIPvbWP1g==
+  version "1.0.30001690"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001690.tgz#f2d15e3aaf8e18f76b2b8c1481abde063b8104c8"
+  integrity sha512-5ExiE3qQN6oF8Clf8ifIDcMRCRE/dMGcETG/XGMD8/XiXm6HXQgQTh1yZYLXXpSOsEUlJm1Xr7kGULZTuGtP/w==
 
 capital-case@^1.0.4:
   version "1.0.4"
@@ -1886,44 +1886,6 @@ fraction.js@^4.3.7:
   version "4.3.7"
   resolved "https://registry.yarnpkg.com/fraction.js/-/fraction.js-4.3.7.tgz#06ca0085157e42fda7f9e726e79fefc4068840f7"
   integrity sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==
-
-frappe-ui@^0.1.93:
-  version "0.1.93"
-  resolved "https://registry.yarnpkg.com/frappe-ui/-/frappe-ui-0.1.93.tgz#0443800e195cddcff88ba875989148a92a270206"
-  integrity sha512-21VUcBBB9g1o7Iv/TW8ng3SdCxsm9G/g0rEdC9Y1Vqx1A1Ucf8VtVFECX2MgoDrLAwVOBKayU5BMaS1fuphcnA==
-  dependencies:
-    "@headlessui/vue" "^1.7.14"
-    "@popperjs/core" "^2.11.2"
-    "@tailwindcss/forms" "^0.5.3"
-    "@tailwindcss/typography" "^0.5.0"
-    "@tiptap/extension-color" "^2.0.3"
-    "@tiptap/extension-highlight" "^2.0.3"
-    "@tiptap/extension-image" "^2.0.3"
-    "@tiptap/extension-link" "^2.0.3"
-    "@tiptap/extension-mention" "^2.0.3"
-    "@tiptap/extension-placeholder" "^2.0.3"
-    "@tiptap/extension-table" "^2.0.3"
-    "@tiptap/extension-table-cell" "^2.0.3"
-    "@tiptap/extension-table-header" "^2.0.3"
-    "@tiptap/extension-table-row" "^2.0.3"
-    "@tiptap/extension-text-align" "^2.0.3"
-    "@tiptap/extension-text-style" "^2.0.3"
-    "@tiptap/extension-typography" "^2.0.3"
-    "@tiptap/pm" "^2.0.3"
-    "@tiptap/starter-kit" "^2.0.3"
-    "@tiptap/suggestion" "^2.0.3"
-    "@tiptap/vue-3" "^2.0.3"
-    "@vueuse/core" "^10.4.1"
-    dayjs "^1.11.13"
-    feather-icons "^4.28.0"
-    idb-keyval "^6.2.0"
-    ora "5.4.1"
-    prettier "^3.3.2"
-    radix-vue "^1.5.3"
-    showdown "^2.1.0"
-    socket.io-client "^4.5.1"
-    tippy.js "^6.3.7"
-    typescript "^5.0.2"
 
 fs-extra@^10.1.0:
   version "10.1.0"
