@@ -8,12 +8,7 @@ export default defineConfig({
 	define: {
 		__VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
 	},
-	plugins: [
-		frappeui({
-			source: '^/(app|login|api|assets|files|private)',
-		}),
-		vue(),
-	],
+	plugins: [frappeui(), vue()],
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, 'src'),
@@ -21,9 +16,7 @@ export default defineConfig({
 	},
 	build: {
 		outDir: `../slides/public/frontend`,
-		target: 'es2015',
 		emptyOutDir: true,
-		sourcemap: true,
 		rollupOptions: {
 			output: {
 				manualChunks: {
@@ -34,6 +27,7 @@ export default defineConfig({
 		commonjsOptions: {
 			include: [/tailwind.config.js/, /node_modules/],
 		},
+		sourcemap: true,
 	},
 	optimizeDeps: {
 		include: ['feather-icons', 'showdown', 'engine.io-client'],
