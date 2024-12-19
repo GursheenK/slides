@@ -16,8 +16,19 @@ export default defineConfig({
 	},
 	build: {
 		outDir: `../${path.basename(path.resolve('..'))}/public/frontend`,
-		emptyOutDir: true,
 		target: 'es2015',
+		emptyOutDir: true,
+		sourcemap: true,
+		rollupOptions: {
+			output: {
+				manualChunks: {
+					'frappe-ui': ['frappe-ui'],
+				},
+			},
+		},
+		commonjsOptions: {
+			include: [/tailwind.config.js/, /node_modules/],
+		},
 	},
 	optimizeDeps: {
 		include: ['frappe-ui > feather-icons', 'showdown', 'engine.io-client'],
