@@ -1,7 +1,6 @@
-import frappeUIPreset from 'frappe-ui/src/tailwind/preset.js'
-
 module.exports = {
-	presets: [frappeUIPreset],
+	mode: 'jit',
+	presets: [require('frappe-ui/src/tailwind/preset.js')],
 	content: [
 		'./index.html',
 		'./src/**/*.{vue,js,ts,jsx,tsx}',
