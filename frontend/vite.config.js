@@ -1,7 +1,7 @@
-import frappeui from 'frappe-ui/vite'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+import frappeui from 'frappe-ui/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,21 +15,14 @@ export default defineConfig({
 		},
 	},
 	build: {
-		outDir: `../slides/public/frontend`,
+		outDir: '../slides/public/frontend',
 		emptyOutDir: true,
-		rollupOptions: {
-			output: {
-				manualChunks: {
-					'frappe-ui': ['frappe-ui'],
-				},
-			},
-		},
 		commonjsOptions: {
 			include: [/tailwind.config.js/, /node_modules/],
 		},
 		sourcemap: true,
 	},
 	optimizeDeps: {
-		include: ['feather-icons', 'showdown', 'engine.io-client'],
+		include: ['feather-icons', 'showdown', 'tailwind.config.js', 'engine.io-client'],
 	},
 })
