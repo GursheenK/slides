@@ -31,8 +31,11 @@ export default defineConfig({
 				},
 			},
 		},
+		commonjsOptions: {
+			include: [/tailwind.config.js/, /node_modules/],
+		},
 	},
 	optimizeDeps: {
-		include: ['frappe-ui > feather-icons', 'showdown', 'engine.io-client'],
+		include: ['feather-icons', 'showdown', 'engine.io-client'],
 	},
 })
