@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"feather-icons": "^4.29.2",
-		"frappe-ui": "^0.1.67",
+		"frappe-ui": "^0.1.93",
 		"html2canvas": "^1.4.1",
 		"lucide-vue-next": "^0.439.0",
 		"tinycolor2": "^1.6.0",
