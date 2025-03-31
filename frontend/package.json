@@ -11,7 +11,8 @@
 	"dependencies": {
 		"dayjs": "^1.11.13",
 		"feather-icons": "^4.29.2",
-		"frappe-ui": "^0.1.93",
+		"frappe-ui": "^0.1.122",
+		"highlight.js": "^11.11.1",
 		"html2canvas": "^1.4.1",
 		"lodash": "^4.17.21",
 		"lucide-vue-next": "^0.439.0",
