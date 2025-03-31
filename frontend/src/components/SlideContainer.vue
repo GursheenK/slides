@@ -8,15 +8,12 @@
 			class="fixed top-[calc(50%-270px)] left-[calc(50%-512px)]"
 		>
 			<div ref="slideRef" :class="slideClasses" :style="slideStyles">
-				<SelectionBox ref="selectionBox" @updateFocus="updateFocus" @click="stopDragging" />
+				<SelectionBox ref="selectionBox" @updateFocus="updateFocus" />
 
-				<AlignmentGuides
-					v-if="showGuides"
-					ref="guides"
-					:selectedRef="selectionBoxRef.$el"
-				/>
+				<AlignmentGuides v-if="showGuides" ref="guides" />
 
 				<SlideElement
+					ref="slideElement"
 					v-for="element in slide.elements"
 					:key="element.id"
 					:element="element"
@@ -28,7 +25,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, useTemplateRef, nextTick, onMounted, provide } from 'vue'
+import { ref, computed, watch, useTemplateRef, nextTick, onMounted, provide, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useResizeObserver } from '@vueuse/core'
 
@@ -69,7 +66,7 @@ const slideRef = useTemplateRef('slideRef')
 const selectionBoxRef = useTemplateRef('selectionBox')
 const guides = useTemplateRef('guides')
 
-const { isDragging, dragTarget, movement } = useDragAndDrop()
+const { isDragging, movement, startDragging } = useDragAndDrop()
 const { isResizing, resizeTarget, resizeMode } = useResizer(activePosition, activeDimensions)
 const { isPanningOrZooming, allowPanAndZoom, transform, transformOrigin } = usePanAndZoom(
 	slideContainerRef,
@@ -96,7 +93,7 @@ const slideStyles = computed(() => ({
 	'--showEdgeOverlay': !activeElementIds.value.length ? 'block' : 'none',
 }))
 
-const showGuides = computed(() => activeElementIds.value.length && !isPanningOrZooming.value)
+const showGuides = computed(() => !isPanningOrZooming.value)
 
 const scale = computed(() => {
 	const matrix = transform.value?.match(/matrix\((.+)\)/)
@@ -196,17 +193,20 @@ const hasSnapped = (positionChange, snappedPositionChange) => {
 }
 
 const applyMovement = (positionChange) => {
+	console.log('applyMovement', currentDragElement.value)
+	currentDragElement.value.left = currentDragElement.value.left + positionChange.dx
+	currentDragElement.value.top = currentDragElement.value.top + positionChange.dy
 	// move the element to the new position
-	updateActivePosition({
-		dx: positionChange.dx,
-		dy: positionChange.dy,
-	})
+	// updateActivePosition({
+	// 	dx: positionChange.dx,
+	// 	dy: positionChange.dy,
+	// })
 
 	// update selection box position to match the element
-	selectionBoxRef.value.setBoxBounds({
-		left: activePosition.value.left - slideBounds.left,
-		top: activePosition.value.top - slideBounds.top,
-	})
+	// selectionBoxRef.value.setBoxBounds({
+	// 	left: activePosition.value.left - slideBounds.left,
+	// 	top: activePosition.value.top - slideBounds.top,
+	// })
 }
 
 const handleMovement = (movement) => {
@@ -214,32 +214,25 @@ const handleMovement = (movement) => {
 	const positionChange = getPositionChange(movement)
 
 	// get change in position - possible snaps
-	const snapPositionChange = guides.value.getMovementBasedOnSnap(positionChange)
+	// const snapPositionChange = guides.value.getMovementBasedOnSnap(positionChange)
 
-	const isElementSnapped = hasSnapped(positionChange, snapPositionChange)
+	// const isElementSnapped = hasSnapped(positionChange, snapPositionChange)
 
-	if (!recentlySnapped) {
-		requestAnimationFrame(() => {
-			applyMovement(snapPositionChange)
-		})
-	}
+	requestAnimationFrame(() => {
+		applyMovement(positionChange)
+	})
 
-	if (isElementSnapped) {
-		recentlySnapped = true
-		clearTimeout(snapTimer)
-		snapTimer = setTimeout(() => {
-			recentlySnapped = false
-		}, 300)
-	}
+	// if (isElementSnapped) {
+	// 	recentlySnapped = true
+	// 	clearTimeout(snapTimer)
+	// 	snapTimer = setTimeout(() => {
+	// 		recentlySnapped = false
+	// 	}, 300)
+	// }
 }
 
 const handleSelectionChange = (newSelection, oldSelection) => {
 	selectionBoxRef.value.handleSelectionChange(newSelection, oldSelection)
-	if (newSelection.length) {
-		addDragAndResize()
-	} else if (oldSelection) {
-		removeDragAndResize()
-	}
 }
 
 const activeDiv = computed(() => {
@@ -278,14 +271,6 @@ const handleSlideTransform = () => {
 	})
 }
 
-const stopDragging = (e) => {
-	// stop dragging when the mouse is released within the selection box and not on an element
-	if (isDragging.value && e.target == selectionBoxRef.value.$el) {
-		isDragging.value = false
-		return
-	}
-}
-
 watch(
 	() => activeElementIds.value,
 	(newVal, oldVal) => {
@@ -296,7 +281,7 @@ watch(
 watch(
 	() => movement.value,
 	(movement) => {
-		if (!movement || !activePosition.value) return
+		if (!movement) return
 		handleMovement(movement)
 	},
 )
@@ -332,14 +317,36 @@ onMounted(() => {
 	document.addEventListener('paste', handlePaste)
 })
 
+const currentDragElementRef = ref(null)
+const currentDragElement = ref(null)
+const dragOffsets = reactive({})
+
 provide('slideDiv', slideRef)
 provide('slideContainerDiv', slideContainerRef)
 provide('isDragging', isDragging)
+provide('currentDragElementRef', currentDragElementRef)
+provide('currentDragElement', currentDragElement)
+provide('dragOffsets', dragOffsets)
 
 defineExpose({
 	togglePanZoom,
 	applyMovement,
 })
+
+const slideElementRef = useTemplateRef('slideElement')
+
+watch(
+	() => [currentDragElement.value?.left, currentDragElement.value?.top],
+	() => {
+		if (!currentDragElement.value) return
+
+		const recent = slideElementRef.value.recentSnap
+
+		console.log(recent)
+
+		guides.value.handleAlignment(!recent)
+	},
+)
 </script>
 
 <style src="../assets/styles/resizer.css"></style>
