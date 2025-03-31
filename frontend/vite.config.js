@@ -12,6 +12,7 @@ export default defineConfig({
 		frappeui({
 			frappeProxy: true,
 			jinjaBootData: true,
+			lucideIcons: true,
 			buildConfig: {
 				indexHtmlPath: '../slides/www/slides.html',
 				outDir: '../slides/public/frontend',
