@@ -4,9 +4,8 @@
 	"version": "0.0.0",
 	"scripts": {
 		"dev": "vite",
-		"build": "vite build --base=/assets/slides/frontend/ && yarn copy-html-entry",
-		"copy-html-entry": "cp ../slides/public/frontend/index.html ../slides/www/slides.html",
-		"preview": "vite preview"
+		"build": "vite build",
+		"serve": "vite preview"
 	},
 	"dependencies": {
 		"dayjs": "^1.11.13",

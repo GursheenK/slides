@@ -11,6 +11,11 @@ export default defineConfig({
 	plugins: [
 		frappeui({
 			frappeProxy: true,
+			buildConfig: {
+				indexHtmlPath: '../slides/www/slides.html',
+				outDir: '../slides/public/frontend',
+				target: 'es2015',
+			},
 		}),
 		vue(),
 	],
@@ -21,11 +26,6 @@ export default defineConfig({
 		alias: {
 			'@': path.resolve(__dirname, 'src'),
 		},
-	},
-	build: {
-		outDir: `../${path.basename(path.resolve('..'))}/public/frontend`,
-		emptyOutDir: true,
-		target: 'es2015',
 	},
 	optimizeDeps: {
 		include: [
