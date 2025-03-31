@@ -11,6 +11,7 @@ export default defineConfig({
 	plugins: [
 		frappeui({
 			frappeProxy: true,
+			jinjaBootData: true,
 			buildConfig: {
 				indexHtmlPath: '../slides/www/slides.html',
 				outDir: '../slides/public/frontend',
