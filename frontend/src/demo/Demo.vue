@@ -28,7 +28,7 @@ const dragTargetRef = ref(null)
 
 const { isDragging, dragMovement, startDragging } = useDragAndDrop()
 
-const { isMovementRestricted, getSnapMovement, getVisibilityMap } = useSnapping(
+const { isMovementRestricted, getSnapMovement, calculateCenterDiffs, visibilityMap } = useSnapping(
 	dragTargetRef,
 	slideRef,
 )
@@ -36,8 +36,6 @@ const { isMovementRestricted, getSnapMovement, getVisibilityMap } = useSnapping(
 const scale = ref(1)
 const left = ref(0)
 const top = ref(0)
-
-const visibilityMap = ref(null)
 
 const elementStyle = computed(() => {
 	return {
@@ -62,7 +60,7 @@ watch(
 	(movement) => {
 		if (!movement) return
 
-		visibilityMap.value = getVisibilityMap()
+		calculateCenterDiffs()
 
 		let totalMovement = {
 			x: 0,

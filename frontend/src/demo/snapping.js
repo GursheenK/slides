@@ -56,10 +56,10 @@ export const useSnapping = (target, parent) => {
 			elementCenter = activeBounds.top + activeBounds.height / 2
 		}
 
-		return elementCenter - slideCenter
+		return slideCenter - elementCenter
 	}
 
-	const updateElementDiffs = () => {
+	const calculateCenterDiffs = () => {
 		if (!target.value) return
 
 		prevDiffs.vertical = diffs.vertical
@@ -69,7 +69,10 @@ export const useSnapping = (target, parent) => {
 		diffs.horizontal = getDiffFromCenter('X')
 	}
 
-	const getSnapOffset = (diff, prevDiff) => {
+	const getSnapOffset = (axis) => {
+		const diff = diffs[axis]
+		const prevDiff = prevDiffs[axis]
+
 		let offset = 0
 
 		const canSnap =
@@ -77,7 +80,7 @@ export const useSnapping = (target, parent) => {
 		const movingAway = Math.abs(diff) > Math.abs(prevDiff)
 
 		if (canSnap && !movingAway) {
-			offset -= diff
+			offset = diff
 		}
 
 		return offset
@@ -86,8 +89,8 @@ export const useSnapping = (target, parent) => {
 	const setPossibleSnapOffsets = () => {
 		if (!target.value) return
 
-		possibleOffsets.vertical = getSnapOffset(diffs.vertical, prevDiffs.vertical)
-		possibleOffsets.horizontal = getSnapOffset(diffs.horizontal, prevDiffs.horizontal)
+		possibleOffsets.vertical = getSnapOffset('vertical')
+		possibleOffsets.horizontal = getSnapOffset('horizontal')
 	}
 
 	const handleSnap = (axis) => {
@@ -125,11 +128,10 @@ export const useSnapping = (target, parent) => {
 		return snapMovement.value
 	}
 
-	const getVisibilityMap = () => {
-		updateElementDiffs()
-
-		return visibilityMap.value
+	return {
+		isMovementRestricted: recentSnap,
+		getSnapMovement,
+		visibilityMap,
+		calculateCenterDiffs,
 	}
-
-	return { isMovementRestricted: recentSnap, getSnapMovement, getVisibilityMap }
 }
