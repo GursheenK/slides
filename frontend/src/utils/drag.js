@@ -25,12 +25,12 @@ export const useDragAndDrop = () => {
 		e.preventDefault()
 
 		if (isDragging.value) {
-			const dx = prevX.value - e.clientX
-			const dy = prevY.value - e.clientY
+			const dx = e.clientX - prevX.value
+			const dy = e.clientY - prevY.value
 
 			dragMovement.value = {
-				x: -dx,
-				y: -dy,
+				x: dx,
+				y: dy,
 			}
 
 			prevX.value = e.clientX

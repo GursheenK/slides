@@ -185,8 +185,6 @@ const getMovementAfterSnap = (diff, prevDiff) => {
 		Math.abs(diff + PROXIMITY_THRESHOLD) < 5 || Math.abs(diff - PROXIMITY_THRESHOLD) < 5
 	const movingAway = Math.abs(diff) > Math.abs(prevDiff)
 
-	console.log('canSnap', canSnap, diff, PROXIMITY_THRESHOLD)
-
 	if (canSnap && !movingAway) {
 		change -= diff
 	}
@@ -290,8 +288,6 @@ const setCurrentDiffs = () => {
 
 	diffs.value.centerX = getDiffFromCenter('X')
 	diffs.value.centerY = getDiffFromCenter('Y')
-
-	console.log('diffs', diffs.value)
 }
 
 const updatePrevDiffs = () => {
