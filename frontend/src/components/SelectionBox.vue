@@ -141,8 +141,12 @@ const updateSelectedElements = () => {
 
 const endSelection = (e) => {
 	document.removeEventListener('mousemove', updateSelection)
+	document.removeEventListener('mouseup', endSelection)
 
 	updateSelectedElements()
+
+	cropSelectionToFitContent(activeElementIds.value)
+	moveElementsToBox(activeElementIds.value)
 }
 
 const cropSelectionToFitContent = (elementIds) => {
@@ -168,8 +172,8 @@ const cropSelectionToFitContent = (elementIds) => {
 
 	bounds.left = l
 	bounds.top = t
-	bounds.width = r - l + 1
-	bounds.height = b - t + 1
+	bounds.width = r - l
+	bounds.height = b - t
 }
 
 const resetSelection = (oldVal) => {
@@ -202,7 +206,10 @@ const handleMouseLeave = () => {
 }
 
 const handleMouseUp = (e) => {
+	if (e.target == selectedRef.value) return
 	if (new Date().getTime() < mousedownStart + longpressDuration) {
+		resetSelection(activeElementIds.value)
+		moveElementsToSlide(activeElementIds.value)
 		emit('updateFocus', e)
 		clearTimeout(mousedownTimer)
 	} else {
@@ -250,6 +257,11 @@ const setBoxBounds = (newBounds) => {
 	})
 }
 
+const updateBoxPosition = (positionChange) => {
+	bounds.left += positionChange.left
+	bounds.top += positionChange.top
+}
+
 onMounted(() => {
 	document.addEventListener('mousedown', handleMouseDown)
 	document.addEventListener('mouseleave', handleMouseLeave)
@@ -259,12 +271,12 @@ onBeforeUnmount(() => {
 	document.removeEventListener('mousedown', handleMouseDown)
 	document.removeEventListener('mouseleave', handleMouseLeave)
 	document.removeEventListener('mouseup', handleMouseUp)
-	document.removeEventListener('mouseup', endSelection)
 })
 
 defineExpose({
 	handleSelectionChange,
 	getBoxBounds,
 	setBoxBounds,
+	updateBoxPosition,
 })
 </script>

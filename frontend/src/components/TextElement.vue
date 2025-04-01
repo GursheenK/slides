@@ -3,7 +3,6 @@
 		class="focus:outline-none"
 		:contenteditable="focusElementId == element.id"
 		:style="textStyle"
-		@click="selectElement"
 		@focus="setCursorPosition"
 		@blur="handleBlur"
 	>

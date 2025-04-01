@@ -1,9 +1,5 @@
 <template>
-	<div
-		v-for="guide in ['centerX', 'centerY', 'left', 'right', 'top', 'bottom']"
-		:key="guide"
-		:style="guideStyles[guide]"
-	></div>
+	<div v-for="guide in ['centerX', 'centerY']" :key="guide" :style="guideStyles[guide]"></div>
 </template>
 
 <script setup>
@@ -14,7 +10,15 @@ import { slide, slideBounds } from '@/stores/slide'
 import { activePosition, activeElementIds, pairElementId } from '@/stores/element'
 
 const props = defineProps({
-	selectedRef: Object,
+	dragElementRef: {
+		type: Object,
+		default: null,
+	},
+})
+
+const snappableOffsets = defineModel('snappableOffsets', {
+	type: Object,
+	default: null,
 })
 
 const PROXIMITY_THRESHOLD = 15
@@ -48,7 +52,7 @@ const diffs = ref({
 })
 
 const visibilityMap = computed(() => {
-	if (!activePosition.value || diffs.value.centerX == null)
+	if (!props.dragElementRef)
 		return {
 			centerX: false,
 			centerY: false,
@@ -87,7 +91,7 @@ const commonGuideStyles = {
 const getVerticalGuideStyles = (direction) => {
 	if (!pairElement.value || !activePosition.value || !visibilityMap.value[direction]) return ''
 
-	const activeBounds = getElementBounds(props.selectedRef)
+	const activeBounds = getElementBounds(props.dragElementRef)
 	const pairedBounds = getElementBounds(pairedDiv.value)
 
 	const left = direction == 'left' ? activeBounds.left - 1 : activeBounds.right
@@ -113,7 +117,7 @@ const rightGuideStyles = computed(() => getVerticalGuideStyles('right'))
 const getHorizontalGuideStyles = (direction, diffWithPaired) => {
 	if (!pairElement.value || !activePosition.value || !visibilityMap.value[direction]) return ''
 
-	const activeBounds = getElementBounds(props.selectedRef)
+	const activeBounds = getElementBounds(props.dragElementRef)
 	const pairedBounds = getElementBounds(pairedDiv.value)
 
 	const top = direction == 'top' ? activeBounds.top - 1 : activeBounds.bottom
@@ -178,9 +182,10 @@ const getElementBounds = (div) => {
 const getMovementAfterSnap = (diff, prevDiff) => {
 	let change = 0
 	const canSnap =
-		Math.abs(diff + PROXIMITY_THRESHOLD) < 3 || Math.abs(diff - PROXIMITY_THRESHOLD) < 3
-
+		Math.abs(diff + PROXIMITY_THRESHOLD) < 5 || Math.abs(diff - PROXIMITY_THRESHOLD) < 5
 	const movingAway = Math.abs(diff) > Math.abs(prevDiff)
+
+	console.log('canSnap', canSnap, diff, PROXIMITY_THRESHOLD)
 
 	if (canSnap && !movingAway) {
 		change -= diff
@@ -213,10 +218,10 @@ const getPairedOffsets = (dx, dy) => {
 }
 
 const getDiffFromCenter = (axis) => {
-	if (!activePosition.value) return
+	if (!props.dragElementRef) return
 	let slideCenter, elementCenter
 
-	const activeBounds = getElementBounds(props.selectedRef)
+	const activeBounds = getElementBounds(props.dragElementRef)
 
 	if (axis == 'X') {
 		slideCenter = slideBounds.width / slideBounds.scale / 2
@@ -253,9 +258,9 @@ const setCurrentDiffs = () => {
 		if (activeElementIds.value.includes(element.id)) return
 
 		const elementDiv = document.querySelector(`[data-index="${element.id}"]`)
-		if (!elementDiv || !props.selectedRef) return
+		if (!elementDiv || !props.dragElementRef) return
 
-		const activeBounds = getElementBounds(props.selectedRef)
+		const activeBounds = getElementBounds(props.dragElementRef)
 		const elementBounds = getElementBounds(elementDiv)
 
 		const diffLeft = activeBounds.left - elementBounds.left
@@ -285,6 +290,8 @@ const setCurrentDiffs = () => {
 
 	diffs.value.centerX = getDiffFromCenter('X')
 	diffs.value.centerY = getDiffFromCenter('Y')
+
+	console.log('diffs', diffs.value)
 }
 
 const updatePrevDiffs = () => {
@@ -308,7 +315,21 @@ const getMovementBasedOnSnap = (initialPosition) => {
 	return { dx: updatedDx, dy: updatedDy }
 }
 
+const setSnappableOffsets = () => {
+	snappableOffsets.value.x = getMovementAfterSnap(diffs.value.centerX, prevDiffs.value.centerX)
+	snappableOffsets.value.y = getMovementAfterSnap(diffs.value.centerY, prevDiffs.value.centerY)
+}
+
+const setDiffFromGuides = (setOffsets = false) => {
+	setCurrentDiffs()
+
+	if (setOffsets) setSnappableOffsets()
+
+	updatePrevDiffs()
+}
+
 defineExpose({
 	getMovementBasedOnSnap,
+	setDiffFromGuides,
 })
 </script>
