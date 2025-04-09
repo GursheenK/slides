@@ -12,6 +12,7 @@ declare module 'vue' {
     CollapsibleSection: typeof import('./src/components/controls/CollapsibleSection.vue')['default']
     ColorPicker: typeof import('./src/components/controls/ColorPicker.vue')['default']
     DropTargetOverlay: typeof import('./src/components/DropTargetOverlay.vue')['default']
+    Guides: typeof import('./src/components/Guides.vue')['default']
     ImageElement: typeof import('./src/components/ImageElement.vue')['default']
     ImageProperties: typeof import('./src/components/ImageProperties.vue')['default']
     LucideBan: typeof import('~icons/lucide/ban')['default']
