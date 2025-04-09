@@ -101,16 +101,21 @@ const transitionMap = {
 }
 
 const applyTransitionStyles = (hook) => {
-	const styles = transitionMap[slide.value.transition][hook]
+	const transitionMapValues = transitionMap[slide.value.transition]
+	if (transitionMapValues) {
+		const styles = transitionMapValues[hook]
 
-	let transformVal = styles.transform
-	if (transformVal && Array.isArray(transformVal)) {
-		transformVal = applyReverseTransition.value ? transformVal[1] : transformVal[0]
+		if (!styles) return
+
+		let transformVal = styles.transform
+		if (transformVal && Array.isArray(transformVal)) {
+			transformVal = applyReverseTransition.value ? transformVal[1] : transformVal[0]
+		}
+
+		transform.value = transformVal || transform.value
+		transition.value = styles.transition || transition.value
+		opacity.value = styles.opacity
 	}
-
-	transform.value = transformVal || transform.value
-	transition.value = styles.transition || transition.value
-	opacity.value = styles.opacity
 }
 
 const beforeSlideEnter = (el) => {
