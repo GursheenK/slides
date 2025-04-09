@@ -2,16 +2,19 @@ import { watch, ref } from 'vue'
 
 export const useDragAndDrop = () => {
 	const isDragging = ref(false)
-	const mouseX = ref(0)
-	const mouseY = ref(0)
-	const dragTarget = ref(null)
+
+	const prevX = ref(0)
+	const prevY = ref(0)
+
 	const movement = ref({ x: 0, y: 0 })
 
 	const startDragging = (e) => {
 		e.preventDefault()
 		e.stopPropagation()
-		mouseX.value = e.clientX
-		mouseY.value = e.clientY
+
+		prevX.value = e.clientX
+		prevY.value = e.clientY
+
 		window.addEventListener('mousemove', drag)
 		window.addEventListener('mouseup', stopDragging)
 	}
@@ -20,34 +23,26 @@ export const useDragAndDrop = () => {
 		e.preventDefault()
 		isDragging.value = true
 		if (isDragging.value) {
-			const dx = mouseX.value - e.clientX
-			const dy = mouseY.value - e.clientY
+			const dx = e.clientX - prevX.value
+			const dy = e.clientY - prevY.value
 
 			movement.value = {
-				x: -(mouseX.value - e.clientX),
-				y: -(mouseY.value - e.clientY),
+				x: dx,
+				y: dy,
 			}
 
-			mouseX.value = e.clientX
-			mouseY.value = e.clientY
+			prevX.value = e.clientX
+			prevY.value = e.clientY
 		}
 	}
 
 	const stopDragging = (e) => {
 		e.preventDefault()
 		e.stopPropagation()
+
 		window.removeEventListener('mousemove', drag)
 		window.removeEventListener('mouseup', stopDragging)
 	}
 
-	watch(
-		() => dragTarget.value,
-		(newVal, oldVal) => {
-			oldVal?.removeEventListener('mousedown', startDragging)
-			oldVal?.removeEventListener('mouseup', stopDragging)
-			newVal?.addEventListener('mousedown', startDragging)
-		},
-	)
-
-	return { dragTarget, isDragging, movement }
+	return { isDragging, movement, startDragging }
 }

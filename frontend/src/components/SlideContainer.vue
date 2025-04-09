@@ -69,7 +69,8 @@ const slideRef = useTemplateRef('slideRef')
 const selectionBoxRef = useTemplateRef('selectionBox')
 const guides = useTemplateRef('guides')
 
-const { isDragging, dragTarget, movement } = useDragAndDrop()
+const { isDragging, movement, startDragging } = useDragAndDrop()
+
 const { isResizing, resizeTarget, resizeMode } = useResizer(activePosition, activeDimensions)
 const { isPanningOrZooming, allowPanAndZoom, transform, transformOrigin } = usePanAndZoom(
 	slideContainerRef,
