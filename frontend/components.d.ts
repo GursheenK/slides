@@ -36,6 +36,7 @@ declare module 'vue' {
     SlideElement: typeof import('./src/components/SlideElement.vue')['default']
     SlideProperties: typeof import('./src/components/SlideProperties.vue')['default']
     SliderInput: typeof import('./src/components/controls/SliderInput.vue')['default']
+    SnapGuides: typeof import('./src/components/SnapGuides.vue')['default']
     TextElement: typeof import('./src/components/TextElement.vue')['default']
     TextProperties: typeof import('./src/components/TextProperties.vue')['default']
     Toolbar: typeof import('./src/components/Toolbar.vue')['default']
