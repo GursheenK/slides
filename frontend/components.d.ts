@@ -29,6 +29,7 @@ declare module 'vue' {
     PresentationList: typeof import('./src/components/PresentationList.vue')['default']
     PresentationPreview: typeof import('./src/components/PresentationPreview.vue')['default']
     PropertiesPanel: typeof import('./src/components/PropertiesPanel.vue')['default']
+    Resizer: typeof import('./src/components/Resizer.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SelectionBox: typeof import('./src/components/SelectionBox.vue')['default']
