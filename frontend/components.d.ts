@@ -30,6 +30,7 @@ declare module 'vue' {
     PresentationPreview: typeof import('./src/components/PresentationPreview.vue')['default']
     PropertiesPanel: typeof import('./src/components/PropertiesPanel.vue')['default']
     ResizeHandle: typeof import('./src/components/ResizeHandle.vue')['default']
+    ResizeIndicator: typeof import('./src/components/ResizeIndicator.vue')['default']
     Resizer: typeof import('./src/components/Resizer.vue')['default']
     Resizer1: typeof import('./src/components/Resizer1.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
