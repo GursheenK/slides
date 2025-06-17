@@ -8,11 +8,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AlignmentGuides: typeof import('./src/components/AlignmentGuides.vue')['default']
     CollapsibleSection: typeof import('./src/components/controls/CollapsibleSection.vue')['default']
     ColorPicker: typeof import('./src/components/controls/ColorPicker.vue')['default']
     DropTargetOverlay: typeof import('./src/components/DropTargetOverlay.vue')['default']
-    Guides: typeof import('./src/components/Guides.vue')['default']
     ImageElement: typeof import('./src/components/ImageElement.vue')['default']
     ImageProperties: typeof import('./src/components/ImageProperties.vue')['default']
     LucideBan: typeof import('~icons/lucide/ban')['default']
@@ -24,6 +22,7 @@ declare module 'vue' {
     Navbar: typeof import('./src/components/Navbar.vue')['default']
     NavigationPanel: typeof import('./src/components/NavigationPanel.vue')['default']
     NumberInput: typeof import('./src/components/controls/NumberInput.vue')['default']
+    OverflowContentOverlay: typeof import('./src/components/OverflowContentOverlay.vue')['default']
     PresentationActionDialog: typeof import('./src/components/PresentationActionDialog.vue')['default']
     PresentationHeader: typeof import('./src/components/PresentationHeader.vue')['default']
     PresentationList: typeof import('./src/components/PresentationList.vue')['default']
@@ -32,7 +31,6 @@ declare module 'vue' {
     ResizeHandle: typeof import('./src/components/ResizeHandle.vue')['default']
     ResizeIndicator: typeof import('./src/components/ResizeIndicator.vue')['default']
     Resizer: typeof import('./src/components/Resizer.vue')['default']
-    Resizer1: typeof import('./src/components/Resizer1.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SelectionBox: typeof import('./src/components/SelectionBox.vue')['default']
