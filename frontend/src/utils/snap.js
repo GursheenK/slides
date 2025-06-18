@@ -8,9 +8,6 @@ export const useSnapping = (target, parent) => {
 
 	const snapMovement = ref({ x: 0, y: 0 })
 
-	const hasSnapped = ref(false)
-	let snapTimeout = null
-
 	const diffs = reactive({
 		vertical: 0,
 		horizontal: 0,
@@ -138,6 +135,9 @@ export const useSnapping = (target, parent) => {
 		setPairedDiffs()
 	}
 
+	const movingAwayX = ref(false)
+	const movingAwayY = ref(false)
+
 	const getSnapOffset = (axis) => {
 		const diff = diffs[axis]
 		const prevDiff = prevDiffs[axis]
@@ -160,16 +160,23 @@ export const useSnapping = (target, parent) => {
 			offset = diff
 		}
 
+		if (movingAway && Math.abs(diff) < threshold) {
+			if (axis === 'horizontal') {
+				movingAwayX.value = true
+			} else if (axis === 'vertical') {
+				movingAwayY.value = true
+			}
+		}
+
+		if (movingAway && Math.abs(diff) > threshold) {
+			if (axis === 'horizontal') {
+				movingAwayX.value = false
+			} else if (axis === 'vertical') {
+				movingAwayY.value = false
+			}
+		}
+
 		return offset
-	}
-
-	const delayNextMovement = () => {
-		hasSnapped.value = true
-
-		clearTimeout(snapTimeout)
-		snapTimeout = setTimeout(() => {
-			hasSnapped.value = false
-		}, 450)
 	}
 
 	const applySnapMovement = (axis) => {
@@ -179,8 +186,6 @@ export const useSnapping = (target, parent) => {
 
 		if (possibleOffset) {
 			offset += possibleOffset
-
-			delayNextMovement()
 		}
 
 		return offset
@@ -227,7 +232,8 @@ export const useSnapping = (target, parent) => {
 
 	return {
 		visibilityMap,
-		disableMovement: hasSnapped,
+		movingAwayX,
+		movingAwayY,
 		updateGuides,
 		getSnapDelta,
 	}

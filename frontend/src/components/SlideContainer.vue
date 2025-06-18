@@ -71,7 +71,7 @@ const { isDragging, positionDelta, startDragging } = useDragAndDrop()
 
 const { dimensionDelta, currentResizer, resizeCursor, startResize } = useResizer()
 
-const { visibilityMap, updateGuides, disableMovement, getSnapDelta } = useSnapping(
+const { visibilityMap, updateGuides, getSnapDelta, movingAwayX, movingAwayY } = useSnapping(
 	selectionBoxRef,
 	slideRef,
 )
@@ -227,6 +227,16 @@ const togglePanZoom = () => {
 const getTotalPositionDelta = (delta) => {
 	const snapDelta = getSnapDelta()
 
+	if (movingAwayX.value && Math.abs(delta.x) < 2) {
+		delta.x = 0
+		snapDelta.x = 0
+	}
+
+	if (movingAwayY.value && Math.abs(delta.y) < 2) {
+		delta.y = 0
+		snapDelta.y = 0
+	}
+
 	return {
 		left: delta.x + snapDelta.x,
 		top: delta.y + snapDelta.y,
@@ -236,13 +246,11 @@ const getTotalPositionDelta = (delta) => {
 const handlePositionChange = (delta) => {
 	updateGuides()
 
-	if (!disableMovement.value) {
-		const totalDelta = getTotalPositionDelta(delta)
-		updateSelectionBounds({
-			left: selectionBounds.left + totalDelta.left / scale.value,
-			top: selectionBounds.top + totalDelta.top / scale.value,
-		})
-	}
+	const totalDelta = getTotalPositionDelta(delta)
+	updateSelectionBounds({
+		left: selectionBounds.left + totalDelta.left / scale.value,
+		top: selectionBounds.top + totalDelta.top / scale.value,
+	})
 }
 
 const applyAspectRatio = (offset) => {
@@ -305,7 +313,9 @@ watch(
 watch(
 	() => positionDelta.value,
 	(delta) => {
-		handlePositionChange(delta)
+		requestAnimationFrame(() => {
+			handlePositionChange(delta)
+		})
 	},
 )
 
