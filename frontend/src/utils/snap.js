@@ -4,7 +4,7 @@ import { activeElementIds, pairElementId } from '../stores/element'
 
 export const useSnapping = (target, parent) => {
 	const CENTER_PROXIMITY_THRESHOLD = 12
-	const PROXIMITY_THRESHOLD = 8
+	const PROXIMITY_THRESHOLD = 2
 
 	const snapMovement = ref({ x: 0, y: 0 })
 
@@ -161,17 +161,17 @@ export const useSnapping = (target, parent) => {
 		}
 
 		if (movingAway && Math.abs(diff) < threshold) {
-			if (axis === 'horizontal') {
+			if (axis === 'horizontal' || axis === 'left' || axis === 'right') {
 				movingAwayX.value = true
-			} else if (axis === 'vertical') {
+			} else if (axis === 'vertical' || axis === 'top' || axis === 'bottom') {
 				movingAwayY.value = true
 			}
 		}
 
 		if (movingAway && Math.abs(diff) > threshold) {
-			if (axis === 'horizontal') {
+			if (axis === 'horizontal' || axis === 'left' || axis === 'right') {
 				movingAwayX.value = false
-			} else if (axis === 'vertical') {
+			} else if (axis === 'vertical' || axis === 'top' || axis === 'bottom') {
 				movingAwayY.value = false
 			}
 		}
