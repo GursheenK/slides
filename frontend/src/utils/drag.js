@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export const useDragAndDrop = () => {
+export const useDragAndDrop = (snapOffsetX, snapOffsetY) => {
 	const isDragging = ref(false)
 
 	const prevX = ref(0)
@@ -24,17 +24,20 @@ export const useDragAndDrop = () => {
 	const drag = (e) => {
 		e.preventDefault()
 
+		const currentX = e.clientX - snapOffsetX.value
+		const currentY = e.clientY - snapOffsetY.value
+
 		if (isDragging.value) {
-			const dx = e.clientX - prevX.value
-			const dy = e.clientY - prevY.value
+			const dx = currentX - prevX.value
+			const dy = currentY - prevY.value
 
 			positionDelta.value = {
 				x: dx,
 				y: dy,
 			}
 
-			prevX.value = e.clientX
-			prevY.value = e.clientY
+			prevX.value = currentX
+			prevY.value = currentY
 		}
 	}
 

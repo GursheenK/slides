@@ -62,12 +62,13 @@ const props = defineProps({
 	highlight: Boolean,
 })
 
+const snapOffsetX = ref(0)
+const snapOffsetY = ref(0)
+
 const slideContainerRef = useTemplateRef('slideContainer')
 const slideTargetRef = useTemplateRef('target')
 const slideRef = useTemplateRef('slideRef')
 const selectionBoxRef = useTemplateRef('selectionBox')
-
-const { isDragging, positionDelta, startDragging } = useDragAndDrop()
 
 const { dimensionDelta, currentResizer, resizeCursor, startResize } = useResizer()
 
@@ -75,6 +76,9 @@ const { visibilityMap, updateGuides, getSnapDelta, movingAwayX, movingAwayY } = 
 	selectionBoxRef,
 	slideRef,
 )
+
+const { isDragging, positionDelta, startDragging } = useDragAndDrop(snapOffsetX, snapOffsetY)
+
 const { allowPanAndZoom, transform, transformOrigin } = usePanAndZoom(
 	slideContainerRef,
 	slideTargetRef,
@@ -236,6 +240,9 @@ const getTotalPositionDelta = (delta) => {
 		delta.y = 0
 		snapDelta.y = 0
 	}
+
+	snapOffsetX.value = snapDelta.x
+	snapOffsetY.value = snapDelta.y
 
 	return {
 		left: delta.x + snapDelta.x,
