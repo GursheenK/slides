@@ -1,6 +1,0 @@
-export default {
-	semi: false,
-	singleQuote: true,
-	useTabs: true,
-	printWidth: 100,
-}
