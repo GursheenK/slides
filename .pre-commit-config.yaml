@@ -32,9 +32,12 @@ repos:
     rev: v2.7.1
     hooks:
       - id: prettier
-        types_or: [javascript, vue, scss]
+        types_or: [vue, javascript, scss]
         additional_dependencies:
-          - prettier
+          - prettier@3.5.3
+          - prettier-plugin-tailwindcss@0.6.1
+        args:
+          - --plugin=prettier-plugin-tailwindcss
         # Ignore any files that might contain jinja / bundles
         exclude: |
             (?x)^(
