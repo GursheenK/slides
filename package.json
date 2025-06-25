@@ -8,5 +8,9 @@
         "postinstall": "cd frontend && yarn install",
         "dev": "cd frontend && yarn dev",
         "build": "cd frontend && yarn build"
-    }
+    },
+    "resolutions": {
+		"prettier": "3.6.1",
+		"prettier-plugin-tailwindcss": "0.6.13"
+	}
 }
