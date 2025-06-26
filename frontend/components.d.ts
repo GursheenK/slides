@@ -17,6 +17,7 @@ declare module 'vue' {
     LucideChevronDown: typeof import('~icons/lucide/chevron-down')['default']
     LucideChevronRight: typeof import('~icons/lucide/chevron-right')['default']
     LucideChevronUp: typeof import('~icons/lucide/chevron-up')['default']
+    LucideEllipsis: typeof import('~icons/lucide/ellipsis')['default']
     LucidePlus: typeof import('~icons/lucide/plus')['default']
     MediaProperties: typeof import('./src/components/MediaProperties.vue')['default']
     Navbar: typeof import('./src/components/Navbar.vue')['default']
