@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlignmentControls: typeof import('./src/components/AlignmentControls.vue')['default']
     CollapsibleSection: typeof import('./src/components/controls/CollapsibleSection.vue')['default']
     ColorPicker: typeof import('./src/components/controls/ColorPicker.vue')['default']
     DropTargetOverlay: typeof import('./src/components/DropTargetOverlay.vue')['default']
