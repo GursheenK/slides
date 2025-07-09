@@ -14,6 +14,7 @@ declare module 'vue' {
     DropTargetOverlay: typeof import('./src/components/DropTargetOverlay.vue')['default']
     ImageElement: typeof import('./src/components/ImageElement.vue')['default']
     ImageProperties: typeof import('./src/components/ImageProperties.vue')['default']
+    LayoutDialog: typeof import('./src/components/LayoutDialog.vue')['default']
     LucideBan: typeof import('~icons/lucide/ban')['default']
     LucideChevronDown: typeof import('~icons/lucide/chevron-down')['default']
     LucideChevronRight: typeof import('~icons/lucide/chevron-right')['default']
