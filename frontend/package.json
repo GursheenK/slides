@@ -9,6 +9,8 @@
 		"serve": "vite preview"
 	},
 	"dependencies": {
+		"@tiptap/extension-text-align": "^2.0.3",
+		"@tiptap/extension-text-style": "^2.0.3",
 		"@tiptap/starter-kit": "^2.0.3",
 		"@tiptap/vue-3": "^2.0.3",
 		"dayjs": "^1.11.13",
