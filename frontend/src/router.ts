@@ -24,6 +24,11 @@ const routes = [
 		path: '/not-permitted',
 		name: 'NotPermitted',
 		component: () => import('@/pages/errorPages/NotPermitted.vue'),
+	},
+	{
+		path: '/demo',
+		name: 'Demo',
+		component: () => import('@/components/Demo.vue'),
 	}
 ]
 
