@@ -7,3 +7,4 @@ node_modules
 __pycache__
 slides/public/frontend
 slides/www/slides.html
+frontend/components.d.ts
