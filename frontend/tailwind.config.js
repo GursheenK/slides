@@ -1,4 +1,5 @@
 import frappeUIPreset from 'frappe-ui/src/tailwind/preset'
+import scrollbarPlugin from './tailwindPlugins'
 
 export default {
 	presets: [frappeUIPreset],
@@ -11,5 +12,5 @@ export default {
 	theme: {
 		extend: {},
 	},
-	plugins: [],
+	plugins: [scrollbarPlugin],
 }
