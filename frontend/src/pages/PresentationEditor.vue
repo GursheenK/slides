@@ -15,6 +15,7 @@
 				@changeSlide="changeSlide"
 				@insertSlide="insertSlide"
 			/>
+			{{ historyControl?.history }}
 
 			<SlideContainer ref="slideContainer" :highlight="slideHighlight" />
 
@@ -46,9 +47,8 @@ import PropertiesPanel from '@/components/PropertiesPanel.vue'
 import SlideContainer from '@/components/SlideContainer.vue'
 import Toolbar from '@/components/Toolbar.vue'
 
-import { presentationId, presentation } from '@/stores/presentation'
+import { presentationId, presentation, state, historyControl } from '@/stores/presentation'
 import {
-	slide,
 	slideIndex,
 	saveChanges,
 	loadSlide,
@@ -171,6 +171,18 @@ const handleGlobalShortcuts = (e) => {
 		case 's':
 			if (e.metaKey) saveSlide(e)
 			break
+		case 'z':
+			if (e.metaKey) {
+				if (e.shiftKey) {
+					// redo action
+					historyControl.redo()
+				} else {
+					// undo action
+					console.log('undoing')
+					historyControl.undo()
+				}
+			}
+			break
 	}
 }
 
@@ -204,7 +216,7 @@ const handleAutoSave = () => {
 }
 
 const changeSlide = async (index, updateCurrent = true) => {
-	if (index < 0 || index >= presentation.data.slides.length) return
+	if (index < 0 || index >= state.value.length) return
 
 	resetFocus()
 	// reset the pan and zoom to capture thumbnail
@@ -216,7 +228,7 @@ const changeSlide = async (index, updateCurrent = true) => {
 			await saveChanges()
 		}
 		slideIndex.value = index
-		loadSlide()
+		// loadSlide()
 
 		// re-enable pan and zoom
 		slideContainerRef.value.togglePanZoom()
@@ -257,10 +269,10 @@ const performSlideAction = async (action, index) => {
 
 const insertSlide = async (index) => {
 	if (!index) index = slideIndex.value
-	const previousBackground = slide.value.background
+	const previousBackground = state.value[slideIndex.value].background
 	await performSlideAction('insert', index)
 	await changeSlide(index + 1)
-	slide.value.background = previousBackground
+	state.value[slideIndex.value].background = previousBackground
 	nextTick(() => {
 		updateSlideThumbnail()
 	})
@@ -268,18 +280,17 @@ const insertSlide = async (index) => {
 
 const loadSlidePostDeletion = async (index) => {
 	// if last slide is deleted, load the previous slide
-	if (slideIndex.value == presentation.data.slides.length)
-		changeSlide(slideIndex.value - 1, false)
+	if (slideIndex.value == state.value.length) changeSlide(slideIndex.value - 1, false)
 	// otherwise load next one
-	else loadSlide()
+	// else loadSlide()
 }
 
 const deleteSlide = async () => {
 	// store elements to delete attachments later
-	const elements = slide.value.elements
+	const elements = state.value[slideIndex.value].elements
 
 	// if there is only one slide, reset the slide state instead of deleting
-	if (presentation.data.slides.length == 1) return resetSlideState()
+	if (state.value.length == 1) return resetSlideState()
 
 	await performSlideAction('delete')
 	loadSlidePostDeletion()
@@ -306,7 +317,7 @@ const resetAndSave = () => {
 }
 
 const resetSlideState = () => {
-	slide.value = {
+	state.value[slideIndex.value] = {
 		thumbnail: '',
 		elements: [],
 		background: '',
@@ -331,7 +342,7 @@ watch(
 		presentationId.value = id
 		await presentation.fetch()
 		addRouteSlug()
-		loadSlide()
+		// loadSlide()
 	},
 	{ immediate: true },
 )
@@ -356,4 +367,11 @@ onBeforeRouteLeave((to, from, next) => {
 	}
 	next()
 })
+
+watch(
+	() => historyControl?.history,
+	() => {
+		console.log('History changed:', historyControl?.history)
+	},
+)
 </script>

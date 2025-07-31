@@ -1,20 +1,13 @@
-import { ref, computed, nextTick, reactive } from 'vue'
+import { ref, computed, nextTick, reactive, watch } from 'vue'
 import { call } from 'frappe-ui'
 
-import { presentationId, presentation, inSlideShow } from './presentation'
+import { presentationId, presentation, inSlideShow, state } from './presentation'
 import { activeElementIds } from './element'
 
 import { isEqual } from 'lodash'
 import html2canvas from 'html2canvas'
 
 const slideIndex = ref(0)
-
-const slide = ref({
-	background: '#ffffff',
-	elements: [],
-	transition: null,
-	transitionDuration: 0,
-})
 
 const selectionBounds = reactive({
 	left: 0,
@@ -36,18 +29,20 @@ const getSavedData = () => {
 }
 
 const getCurrentData = () => {
-	if (!slide.value) return {}
+	if (!state.value[slideIndex.value]) return {}
 	return {
-		elements: slide.value.elements,
-		transition: slide.value.transition,
-		transition_duration: slide.value.transitionDuration,
-		background: slide.value.background,
+		elements: state.value[slideIndex.value].elements,
+		transition: state.value[slideIndex.value].transition,
+		transition_duration: state.value[slideIndex.value].transition_duration,
+		background: state.value[slideIndex.value].background,
 	}
 }
 
 const isSlideDirty = () => {
 	const data = JSON.parse(JSON.stringify(getSavedData()))
 	const updatedData = JSON.parse(JSON.stringify(getCurrentData()))
+
+	console.log('Checking if slide is dirty:', data, updatedData)
 
 	return !isEqual(data, updatedData)
 }
@@ -91,7 +86,7 @@ const getSlideThumbnail = async () => {
 }
 
 const updateSlideState = async () => {
-	const { elements, transition, transitionDuration, background } = slide.value
+	const { elements, transition, transitionDuration, background } = state.value[slideIndex.value]
 	presentation.data.slides[slideIndex.value] = {
 		...presentation.data.slides[slideIndex.value],
 		background,
@@ -103,18 +98,18 @@ const updateSlideState = async () => {
 }
 
 const updateSlideThumbnail = async () => {
-	if (!presentation.data || !slide.value) return
+	if (!presentation.data || !state.value[slideIndex.value]) return
 
 	const thumbnail = await getSlideThumbnail()
-	slide.value.thumbnail = thumbnail
-	presentation.data.slides[slideIndex.value].thumbnail = thumbnail
+	state.value[slideIndex.value].thumbnail = thumbnail
+	state.value[slideIndex.value].thumbnail = thumbnail
 }
 
 const loadSlide = () => {
 	const { background, transition, transition_duration, elements, thumbnail } =
-		presentation.data.slides[slideIndex.value]
+		state.value[slideIndex.value]
 
-	slide.value = {
+	state.value[slideIndex.value] = {
 		background,
 		transition,
 		thumbnail,
@@ -127,6 +122,7 @@ const saveChanges = async () => {
 	const dirty = isSlideDirty()
 
 	if (!presentation.data || !dirty) return
+	console.log('Saving changes for slide:', dirty)
 
 	// update presentation object with the latest slide data
 	await updateSlideState()
@@ -135,7 +131,7 @@ const saveChanges = async () => {
 		doc: presentation.data,
 	})
 
-	slide.value.thumbnail = presentation.data.slides[slideIndex.value].thumbnail
+	presentation.data.slides[slideIndex.value].thumbnail = state.value[slideIndex.value].thumbnail
 
 	await presentation.reload()
 }
@@ -160,7 +156,6 @@ const guideVisibilityMap = reactive({
 
 export {
 	slideIndex,
-	slide,
 	slideBounds,
 	selectionBounds,
 	guideVisibilityMap,

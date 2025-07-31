@@ -11,7 +11,7 @@
 			class="flex h-full flex-col overflow-y-auto p-4"
 			:style="scrollbarStyles"
 		>
-			<Draggable v-model="presentation.data.slides" item-key="name" @end="handleSortEnd">
+			<Draggable v-model="state" item-key="name" @end="handleSortEnd">
 				<template #item="{ element: slide }">
 					<div
 						:class="getThumbnailClasses(slide)"
@@ -22,10 +22,7 @@
 				</template>
 			</Draggable>
 
-			<div
-				:class="insertButtonClasses"
-				@click="emit('insertSlide', presentation.data.slides.length - 1)"
-			>
+			<div :class="insertButtonClasses" @click="emit('insertSlide', state.length - 1)">
 				<LucidePlus class="size-3.5" />
 			</div>
 		</div>
@@ -55,8 +52,8 @@ import { call } from 'frappe-ui'
 
 import Draggable from 'vuedraggable'
 
-import { presentation } from '@/stores/presentation'
-import { slide, slideIndex } from '@/stores/slide'
+import { state, presentation } from '@/stores/presentation'
+import { slideIndex } from '@/stores/slide'
 
 import { useAttrs } from 'vue'
 
@@ -101,7 +98,8 @@ const getThumbnailClasses = (slide) => {
 }
 
 const getThumbnailStyles = (s) => {
-	const img = slideIndex.value == s.idx - 1 ? slide.value.thumbnail : s.thumbnail
+	const slide = state.value[slideIndex.value]
+	const img = slideIndex.value == s.idx - 1 ? slide.thumbnail : s.thumbnail
 	return {
 		backgroundImage: `url(${img})`,
 	}

@@ -7,17 +7,22 @@
 			:style="targetStyles"
 			class="fixed left-[calc(50%-512px)] top-[calc(50%-270px)]"
 		>
-			<div ref="slideRef" :class="slideClasses" :style="slideStyles">
-				<SelectionBox ref="selectionBox" @mousedown="(e) => handleMouseDown(e)" />
+			<div v-if="state" ref="slideRef" :class="slideClasses" :style="slideStyles">
+				<SelectionBox
+					ref="selectionBox"
+					@mousedown="(e) => handleMouseDown(e)"
+					:positionDelta="positionDelta"
+				/>
 
-				<SnapGuides :isDragging="isDragging" :visibilityMap="visibilityMap" />
+				<!-- <SnapGuides :isDragging="isDragging" :visibilityMap="visibilityMap" /> -->
 
 				<SlideElement
-					v-for="element in slide.elements"
+					v-for="element in state[slideIndex]?.elements"
 					:key="element.id"
 					:element="element"
 					:outline="getElementOutline(element)"
 					:isDragging="isDragging"
+					:positionDelta="totalDelta"
 					:data-index="element.id"
 					@mousedown="(e) => handleMouseDown(e, element)"
 					@clearTimeouts="clearTimeouts"
@@ -41,8 +46,8 @@ import SlideElement from '@/components/SlideElement.vue'
 import DropTargetOverlay from '@/components/DropTargetOverlay.vue'
 import OverflowContentOverlay from '@/components/OverflowContentOverlay.vue'
 
-import { presentation } from '@/stores/presentation'
-import { slide, slideBounds, selectionBounds, updateSelectionBounds } from '@/stores/slide'
+import { presentation, state } from '@/stores/presentation'
+import { slideBounds, selectionBounds, updateSelectionBounds, slideIndex } from '@/stores/slide'
 import {
 	activeElementIds,
 	activeElement,
@@ -67,7 +72,7 @@ const slideTargetRef = useTemplateRef('target')
 const slideRef = useTemplateRef('slideRef')
 const selectionBoxRef = useTemplateRef('selectionBox')
 
-const { isDragging, positionDelta, startDragging } = useDragAndDrop()
+const { isDragging, positionDelta, startDragging, totalDelta } = useDragAndDrop()
 
 const { dimensionDelta, currentResizer, resizeCursor, startResize } = useResizer()
 
@@ -93,7 +98,7 @@ const targetStyles = computed(() => ({
 }))
 
 const slideStyles = computed(() => ({
-	backgroundColor: slide.value.background || 'white',
+	backgroundColor: state.value[slideIndex.value]?.background || 'white',
 	cursor: isDragging.value ? 'move' : resizeCursor.value || 'default',
 }))
 
@@ -126,6 +131,7 @@ const clearTimeouts = () => {
 }
 
 const triggerSelection = (e, id) => {
+	console.log('Triggering selection:', id)
 	if (id && !activeElementIds.value.includes(id)) {
 		activeElementIds.value = [id]
 		focusElementId.value = null
@@ -137,18 +143,21 @@ const handleMouseUp = (e, id) => {
 
 	pairElementId.value = null
 
-	if (!isDragging.value) clickTimeout = setTimeout(() => triggerSelection(e, id), 100)
+	if (!isDragging.value) clickTimeout = setTimeout(() => triggerSelection(e, id), 200)
 }
 
 const triggerDrag = (e, id) => {
-	const notEditable = id && focusElementId.value !== id
+	const notEditable = (id && focusElementId.value !== id) || !id
 	const isMultiSelect = activeElementIds.value.length > 1
 	const isNotInSelection = id && !activeElementIds.value.includes(id)
 
 	// prevent drag if multiple are selected and id isn't in the selection
 	if (isMultiSelect && isNotInSelection) return
 
+	console.log('notEditable:', notEditable, 'isMultiSelect:', isMultiSelect)
+
 	if (notEditable || isMultiSelect) {
+		console.log('Triggering drag:', id, isMultiSelect, notEditable)
 		startDragging(e)
 
 		if (id && !isMultiSelect && activeElementIds.value[0] !== id) {
@@ -234,13 +243,13 @@ const getTotalPositionDelta = (delta) => {
 	}
 }
 
-const handlePositionChange = (delta) => {
-	const totalDelta = getTotalPositionDelta(delta)
-	updateSelectionBounds({
-		left: selectionBounds.left + totalDelta.left / scale.value,
-		top: selectionBounds.top + totalDelta.top / scale.value,
-	})
-}
+// const handlePositionChange = (delta) => {
+// 	const totalDelta = getTotalPositionDelta(delta)
+// 	updateSelectionBounds({
+// 		left: selectionBounds.left + totalDelta.left / scale.value,
+// 		top: selectionBounds.top + totalDelta.top / scale.value,
+// 	})
+// }
 
 const applyAspectRatio = (offset) => {
 	if (!offset) return 0
@@ -300,9 +309,18 @@ watch(
 )
 
 watch(
-	() => positionDelta.value,
-	(delta) => {
-		handlePositionChange(delta)
+	() => isDragging.value,
+	(isDragging) => {
+		if (!isDragging) {
+			for (const el of state.value[slideIndex.value].elements) {
+				if (activeElementIds.value.includes(el.id)) {
+					el.left += totalDelta.value.x
+					el.top += totalDelta.value.y
+				}
+			}
+			// Reset offset after applying
+			totalDelta.value = { x: 0, y: 0 }
+		}
 	},
 )
 

@@ -26,7 +26,6 @@ import SliderInput from '@/components/controls/SliderInput.vue'
 import CollapsibleSection from '@/components/controls/CollapsibleSection.vue'
 
 import { presentation } from '@/stores/presentation'
-import { slide } from '@/stores/slide'
 import { activeElement, activeElementIds } from '@/stores/element'
 
 const activeProperties = computed(() => {

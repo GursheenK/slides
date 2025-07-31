@@ -1,5 +1,6 @@
 import { ref, reactive, computed } from 'vue'
-import { selectionBounds, slide, slideBounds } from '../stores/slide'
+import { state } from '../stores/presentation'
+import { selectionBounds, slideBounds, slideIndex } from '../stores/slide'
 import { activeElementIds, pairElementId } from '../stores/element'
 
 export const useSnapping = (target, parent) => {
@@ -145,7 +146,7 @@ export const useSnapping = (target, parent) => {
 	}
 
 	const setPairedDiffs = () => {
-		slide.value.elements.forEach((element) => {
+		state.value[slideIndex.value].elements.forEach((element) => {
 			const diffFromElement = getDiffFromElement(element)
 
 			const canPair = canElementPair(diffFromElement)

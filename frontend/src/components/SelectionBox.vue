@@ -3,9 +3,19 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, useTemplateRef, onMounted, onBeforeUnmount, inject } from 'vue'
+import {
+	ref,
+	computed,
+	nextTick,
+	useTemplateRef,
+	onMounted,
+	onBeforeUnmount,
+	inject,
+	watch,
+} from 'vue'
 
-import { slide, slideBounds, selectionBounds, updateSelectionBounds } from '@/stores/slide'
+import { slideBounds, selectionBounds, updateSelectionBounds, slideIndex } from '@/stores/slide'
+import { state } from '@/stores/presentation'
 import {
 	activeElementIds,
 	setActiveElements,
@@ -13,6 +23,13 @@ import {
 	resetFocus,
 	focusElementId,
 } from '@/stores/element'
+
+const props = defineProps({
+	positionDelta: {
+		type: Object,
+		default: () => ({ x: 0, y: 0 }),
+	},
+})
 
 const slideDiv = inject('slideDiv')
 const slideContainerDiv = inject('slideContainerDiv')
@@ -29,7 +46,7 @@ let mousedownStart
 const boxStyles = computed(() => ({
 	position: 'absolute',
 	zIndex: 1000,
-	backgroundColor: activeElementIds.value.length == 1 ? '' : '#70b6f018',
+	backgroundColor: activeElementIds.value.length == 1 ? 'red' : '#70b6f018',
 	border: activeElementIds.value.length == 1 ? '' : '0.1px solid #70b6f092',
 	width: `${selectionBounds.width}px`,
 	height: `${selectionBounds.height}px`,
@@ -96,7 +113,7 @@ const getElementsWithinBoxSurface = () => {
 	const boxRight = selectionBounds.left + selectionBounds.width
 	const boxBottom = selectionBounds.top + selectionBounds.height
 
-	slide.value.elements.forEach((element) => {
+	state.value[slideIndex.value].elements.forEach((element) => {
 		const {
 			left: elementLeft,
 			top: elementTop,
@@ -208,7 +225,7 @@ const handleMouseUp = (e) => {
 }
 
 const moveElement = (elementId, movement) => {
-	let element = slide.value.elements.find((el) => el.id === elementId)
+	let element = state.value[slideIndex.value].elements.find((el) => el.id === elementId)
 
 	element.left += movement.dx
 	element.top += movement.dy
@@ -240,11 +257,11 @@ const handleSelection = (elementIds) => {
 	if (!elementIds.length) return
 	document.removeEventListener('mouseup', endSelection)
 	cropSelectionToFitContent(elementIds)
-	moveElementsToBox(elementIds)
+	// moveElementsToBox(elementIds)
 }
 
 const handleSelectionChange = (elementIds, oldIds) => {
-	moveElementsToSlide(oldIds)
+	// moveElementsToSlide(oldIds)
 	resetSelection(oldIds)
 	nextTick(() => handleSelection(elementIds))
 }
@@ -270,4 +287,14 @@ onBeforeUnmount(() => {
 defineExpose({
 	handleSelectionChange,
 })
+
+watch(
+	() => props.positionDelta,
+	(newVal, oldVal) => {
+		updateSelectionBounds({
+			left: selectionBounds.left + newVal.x,
+			top: selectionBounds.top + newVal.y,
+		})
+	},
+)
 </script>
