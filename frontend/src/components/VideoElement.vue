@@ -9,10 +9,9 @@
 			@timeupdate="updateProgress"
 			@loadedmetadata="updateDuration"
 			@ended="resetProgress"
-			preload="auto"
 			:poster="videoPoster"
 		>
-			<source :src="`/api/method/slides.api.file.get_video_file?src=${videoSrc}`" />
+			<source :src="`${videoSrc}`" />
 		</video>
 		<div
 			ref="overlay"
@@ -57,6 +56,7 @@ const el = useTemplateRef('videoElement')
 const overlay = useTemplateRef('overlay')
 
 const videoSrc = computed(() => {
+	console.log('VideoElement src:', element.value.src)
 	const src = element.value.src
 	const isPublic = isPublicPresentation.value
 	const requiresPrefix = !isPublic && src && src.startsWith('/files/')

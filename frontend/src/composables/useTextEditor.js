@@ -93,15 +93,32 @@ export const useTextEditor = () => {
 
 	const updateEditor = ({ transaction, editor }) => {
 		if (transaction.docChanged) {
-			const textContent = editor.getText().trim()
+			const textContent = editor.getText()
+			const selection = editor.state.selection
+			const node = editor.state.doc.nodeAt(selection.from)
+			const hasText = textContent.length > 0
 
-			if (textContent.length == 0 && !isRestoringStyles) {
+			// Restore styles if text is empty or if a new line loses styles
+			const hasStyles =
+				node &&
+				(node.marks?.some(
+					(mark) =>
+						mark.type.name === 'textStyle' &&
+						Object.values(mark.attrs).some(
+							(attr) => attr !== null && attr !== undefined,
+						),
+				) ||
+					editor.isActive('bold') ||
+					editor.isActive('italic') ||
+					editor.isActive('underline') ||
+					editor.isActive('strike'))
+
+			if (!hasStyles && !isRestoringStyles) {
 				isRestoringStyles = true
 				applyLastUsedStyles(editor)
 				setTimeout(() => {
 					isRestoringStyles = false
 				}, 0)
-
 				return
 			}
 

@@ -79,6 +79,7 @@ import {
 	inSlideShow,
 	applyReverseTransition,
 	initPresentationDoc,
+	isPublicPresentation,
 } from '@/stores/presentation'
 import { slides, slideIndex, currentSlide } from '@/stores/slide'
 
@@ -328,7 +329,42 @@ watch(
 	() => props.activeSlideId,
 	(index) => {
 		slideIndex.value = parseInt(index) - 1
+		preloadVideosInSlideRange(slideIndex.value)
 	},
 	{ immediate: true },
 )
+
+async function preloadVideosInSlideRange(currentIndex, lookahead = 3) {
+	for (let i = currentIndex; i < Math.min(currentIndex + lookahead, slides.value.length); i++) {
+		const slide = slides.value[i]
+		if (!slide || !slide.elements) continue
+
+		for (const element of slide.elements) {
+			console.log('Preloading element:', element)
+			if (element.type === 'video' && element.src) {
+				if (!element.src.startsWith('blob:')) {
+					const fileUrl = isPublicPresentation.value
+						? element.src
+						: `/private/${element.src}`
+					try {
+						const response = await fetch(fileUrl, {
+							credentials: 'include',
+						})
+
+						if (!response.ok) throw new Error(`Fetch failed: ${fileUrl}`)
+
+						const blob = await response.blob()
+						const blobUrl = URL.createObjectURL(blob)
+						console.log(`Preloaded ${fileUrl} as blob URL:`, blobUrl)
+						element.src = blobUrl
+					} catch (err) {
+						console.error(`Error preloading ${fileUrl}:`, err)
+					}
+				} else {
+					console.log('Video already a blob URL, skipping fetch:', element.src)
+				}
+			}
+		}
+	}
+}
 </script>

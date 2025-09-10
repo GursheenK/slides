@@ -359,3 +359,119 @@ def get_themes():
 			theme["thumbnail"] = get_presentation_thumbnail(theme["name"])
 
 	return themes
+
+
+import os
+import tempfile
+
+import ffmpeg
+
+
+def convert_to_webm_vp9(input_path, output_path):
+	(
+		ffmpeg.input(input_path)
+		.output(
+			output_path,
+			vcodec="libvpx-vp9",
+			crf=25,  # tweak this between 20-30, lower = better quality
+			b="1500k",  # cap bitrate to ~ original bitrate
+			speed=2,
+			pix_fmt="yuv420p",
+			deadline="good",
+		)
+		.run(overwrite_output=True)
+	)
+
+
+@frappe.whitelist()
+def convert_videos_to_webm(docname):
+	doc = frappe.get_doc("Presentation", docname)
+	url_map = {}
+
+	# 1. Find all video attachments
+	attachments = frappe.get_all(
+		"File",
+		filters={
+			"attached_to_doctype": doc.doctype,
+			"attached_to_name": doc.name,
+			"file_type": ["in", ["MP4"]],
+		},
+		fields=["name", "file_url", "file_name"],
+	)
+
+	for attachment in attachments:
+		# Download file locally
+		file_url = attachment.file_url
+		local_input_path = download_file_locally(file_url)
+
+		# Create temp output path for webm
+		output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".webm")
+		local_output_path = output_file.name
+		output_file.close()
+
+		# Convert using ffmpeg-python
+		try:
+			convert_to_webm_vp9(local_input_path, local_output_path)
+
+		except ffmpeg.Error as e:
+			frappe.log_error(f"FFmpeg error: {str(e)}", "Video Conversion Error")
+			continue
+
+		# Upload new converted video as attachment
+		with open(local_output_path, "rb") as f:
+			filedata = f.read()
+			filename = os.path.splitext(attachment.file_name)[0] + ".webm"
+			new_attachment = frappe.get_doc(
+				{
+					"doctype": "File",
+					"file_name": filename,
+					"attached_to_doctype": doc.doctype,
+					"attached_to_name": doc.name,
+					"is_private": not doc.is_public,
+					"content": filedata,
+				}
+			).insert()
+
+		url_map[attachment.name] = {
+			"src": new_attachment.file_url.replace(frappe.local.site_name, ""),
+			"attachmentName": new_attachment.name,
+		}
+
+		# Delete old attachment
+		frappe.delete_doc("File", attachment.name)
+
+		# Clean up temp files
+		os.remove(local_input_path)
+		os.remove(local_output_path)
+
+	# 3. Update presentation elements to point to new URLs
+	if url_map:
+		updated_slides = []
+
+		for slide in doc.slides:
+			elements = json.loads(slide.elements or "[]")
+			updated = False
+
+			for element in elements:
+				if element.get("type") == "video" and element.get("attachmentName") in url_map:
+					element.update(url_map[element["attachmentName"]])
+					updated = True
+
+			if updated:
+				slide.elements = json.dumps(elements, indent=2)
+
+			updated_slides.append(slide)
+
+		if updated_slides:
+			doc.slides = updated_slides
+			doc.save()
+
+
+def download_file_locally(file_url):
+	file_doc = frappe.get_doc("File", {"file_url": file_url})
+	file_content = file_doc.get_content()
+
+	temp_file = tempfile.NamedTemporaryFile(delete=False)
+	temp_file.write(file_content)
+	temp_file.close()
+	return temp_file.name

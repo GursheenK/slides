@@ -258,6 +258,7 @@ const handleGlobalShortcuts = (e) => {
 const recentlyRestored = ref(false)
 
 const handleHistoryOperation = async (operation) => {
+	activeElementIds.value = []
 	if (operation == 'undo') await historyControl.undo()
 	else if (operation == 'redo') await historyControl.redo()
 
@@ -279,11 +280,13 @@ const handleHistoryOperation = async (operation) => {
 		}, 1000)
 	}
 
-	if (activeElementIds.value != elementsToFocus) {
-		activeElementIds.value = elementsToFocus
-	}
 	nextTick(() => {
-		updateThumbnail(slideToFocus)
+		if (activeElementIds.value != elementsToFocus) {
+			activeElementIds.value = elementsToFocus
+		}
+		nextTick(() => {
+			updateThumbnail(slideToFocus)
+		})
 	})
 }
 
@@ -503,6 +506,8 @@ const initIntervals = () => {
 const setSlideIndex = (index) => {
 	index = parseInt(index) - 1 || 0
 	slideIndex.value = Math.min(index, slides.value.length - 1)
+	historyState.value.activeSlide = slideIndex.value
+	historyControl?.commit()
 }
 
 const loadPresentation = async (id) => {
