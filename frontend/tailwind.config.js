@@ -1,5 +1,6 @@
-import frappeUIPreset from 'frappe-ui/src/tailwind/preset'
-import scrollbarPlugin from './tailwindPlugins'
+import frappeUIPreset from 'frappe-ui/tailwind'
+
+const scrollbarPlugin = require('./tailwindPlugins')
 
 export default {
 	presets: [frappeUIPreset],
