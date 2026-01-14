@@ -4,6 +4,20 @@ fail_fast: false
 
 
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: trailing-whitespace
+        files: "slides.*"
+        exclude: ".*json$|.*txt$|.*csv|.*md|.*svg"
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-ast
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.13
     hooks:
@@ -36,6 +50,23 @@ repos:
                 .*node_modules.*|
                 .*boilerplate.*|
                 .*src.*.js|
+                slides/templates/includes/.*|
+                slides/public/js/lib/.*
+            )$
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.44.0
+    hooks:
+      - id: eslint
+        types_or: [javascript]
+        args: ['--quiet']
+        # Ignore any files that might contain jinja / bundles
+        exclude: |
+            (?x)^(
+                slides/public/dist/.*|
+                cypress/.*|
+                .*node_modules.*|
+                .*boilerplate.*|
                 slides/templates/includes/.*|
                 slides/public/js/lib/.*
             )$
