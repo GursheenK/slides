@@ -19,7 +19,7 @@
 		"@tiptap/vue-3": "^2.0.3",
 		"dayjs": "^1.11.13",
 		"feather-icons": "^4.29.2",
-		"frappe-ui": "0.1.235",
+		"frappe-ui": "0.1.259",
 		"highlight.js": "^11.11.1",
 		"html2canvas": "^1.4.1",
 		"lodash": "^4.17.21",
