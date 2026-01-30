@@ -7,4 +7,5 @@ node_modules
 __pycache__
 slides/public/frontend
 slides/www/slides.html
+slides/www/service-worker.js
 frontend/components.d.ts
