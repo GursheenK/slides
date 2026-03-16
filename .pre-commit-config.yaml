@@ -49,7 +49,6 @@ repos:
                 slides/public/dist/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
-                .*src.*.js|
                 slides/templates/includes/.*|
                 slides/public/js/lib/.*|
                 slides/www/service-worker.js
