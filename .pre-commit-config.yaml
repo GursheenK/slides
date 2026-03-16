@@ -49,9 +49,9 @@ repos:
                 slides/public/dist/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
-                .*src.*.js|
                 slides/templates/includes/.*|
-                slides/public/js/lib/.*
+                slides/public/js/lib/.*|
+                slides/www/service-worker.js
             )$
 
   - repo: https://github.com/pre-commit/mirrors-eslint
