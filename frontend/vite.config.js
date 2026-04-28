@@ -49,6 +49,6 @@ export default defineConfig({
 		},
 	},
 	optimizeDeps: {
-		include: ['feather-icons', 'tailwind.config.js', 'lowlight', 'interactjs'],
+		include: ['feather-icons', 'tailwind.config.js', 'lowlight', 'interactjs', 'debug'],
 	},
 })
