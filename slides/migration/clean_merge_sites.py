@@ -99,6 +99,7 @@ def execute(
 	doctypes: list[str] | str | None = None,
 	ignore_names: list[str] | str | None = None,
 	overwrite_singles: list[str] | str | None = None,
+	overwrite_doctypes: list[str] | str | None = None,
 	dry_run: int = 1,
 	commit_every: int = 100,
 ) -> dict[str, Any]:
@@ -111,6 +112,7 @@ def execute(
 		doctypes: Optional explicit list, or comma-separated DocType names.
 		ignore_names: Optional document names to exclude from export.
 		overwrite_singles: Optional Single DocType names to overwrite on target.
+		overwrite_doctypes: Optional non-Single DocTypes to overwrite by document name on target.
 		dry_run: 1 checks and prints the plan. 0 applies the merge.
 		commit_every: Commit after this many inserted parent documents.
 	"""
@@ -118,6 +120,7 @@ def execute(
 	selected_doctypes = normalize_doctypes(profile, doctypes)
 	ignored_names = normalize_names(ignore_names)
 	singles_to_overwrite = normalize_names(overwrite_singles)
+	doctypes_to_overwrite = normalize_names(overwrite_doctypes)
 
 	print(f"Source: {source_site}")
 	print(f"Target: {target_site}")
@@ -126,10 +129,12 @@ def execute(
 		print(f"Ignoring names: {', '.join(sorted(ignored_names))}")
 	if singles_to_overwrite:
 		print(f"Overwriting Singles: {', '.join(sorted(singles_to_overwrite))}")
+	if doctypes_to_overwrite:
+		print(f"Overwriting DocTypes: {', '.join(sorted(doctypes_to_overwrite))}")
 	print(f"Mode: {'dry-run' if dry_run else 'apply'}")
 
 	source_bundle = export_site_bundle(source_site, selected_doctypes, ignored_names)
-	target_report = inspect_target(target_site, source_bundle)
+	target_report = inspect_target(target_site, source_bundle, doctypes_to_overwrite)
 
 	print_report(source_bundle, target_report)
 
@@ -150,6 +155,7 @@ def execute(
 		target_report,
 		commit_every=commit_every,
 		overwrite_singles=singles_to_overwrite,
+		overwrite_doctypes=doctypes_to_overwrite,
 	)
 	print("Merge completed.")
 	return {"status": "merged", "export": source_bundle["counts"], "target": summarize_report(target_report)}
@@ -327,12 +333,18 @@ def export_related_files(
 	return file_docs
 
 
-def inspect_target(target_site: str, bundle: dict[str, Any]) -> dict[str, Any]:
+def inspect_target(
+	target_site: str,
+	bundle: dict[str, Any],
+	overwrite_doctypes: set[str] | None = None,
+) -> dict[str, Any]:
+	overwrite_doctypes = overwrite_doctypes or set()
 	connect(target_site)
 	try:
 		report = {
 			"missing_docs": [],
 			"identical_docs": [],
+			"overwrite_docs": [],
 			"doc_conflicts": [],
 			"missing_singles": [],
 			"changed_singles": [],
@@ -372,6 +384,8 @@ def inspect_target(target_site: str, bundle: dict[str, Any]) -> dict[str, Any]:
 			target_doc = frappe.get_doc(doctype, name).as_dict(no_nulls=False)
 			if canonical_doc(doc) == canonical_doc(plain_dict(target_doc)):
 				report["identical_docs"].append((doctype, name))
+			elif doctype in overwrite_doctypes:
+				report["overwrite_docs"].append((doctype, name))
 			else:
 				report["doc_conflicts"].append((doctype, name, "different target document exists"))
 
@@ -400,8 +414,10 @@ def apply_bundle(
 	report: dict[str, Any],
 	commit_every: int,
 	overwrite_singles: set[str] | None = None,
+	overwrite_doctypes: set[str] | None = None,
 ) -> None:
 	overwrite_singles = overwrite_singles or set()
+	overwrite_doctypes = overwrite_doctypes or set()
 	connect(target_site)
 	try:
 		for file_url in report["missing_files"]:
@@ -424,6 +440,16 @@ def apply_bundle(
 				if inserted % commit_every == 0:
 					frappe.db.commit()
 
+		overwritten = 0
+		docs_by_key = get_docs_by_key(bundle)
+		for doctype, name in report["overwrite_docs"]:
+			if doctype not in overwrite_doctypes:
+				continue
+			if overwrite_doc_tree(docs_by_key[(doctype, name)]):
+				overwritten += 1
+				if overwritten % commit_every == 0:
+					frappe.db.commit()
+
 		for docs in bundle["docs"].values():
 			for doc in docs:
 				if insert_missing_doc_tree(doc):
@@ -433,6 +459,7 @@ def apply_bundle(
 
 		frappe.db.commit()
 		print(f"Inserted {inserted} parent document(s).")
+		print(f"Overwrote {overwritten} parent document(s).")
 	finally:
 		disconnect()
 
@@ -446,6 +473,41 @@ def insert_missing_doc_tree(doc_data: dict[str, Any]) -> bool:
 	doc = frappe.get_doc(deepcopy(doc_data))
 	db_insert_tree(doc)
 	return True
+
+
+def overwrite_doc_tree(doc_data: dict[str, Any]) -> bool:
+	doctype = doc_data["doctype"]
+	name = doc_data["name"]
+	if not frappe.db.exists(doctype, name):
+		return False
+
+	doc = frappe.get_doc(deepcopy(doc_data))
+	doc.flags.ignore_links = True
+	doc.flags.ignore_permissions = True
+	doc.db_update()
+
+	for field in doc.meta.get_table_fields():
+		frappe.db.delete(
+			field.options,
+			{"parent": doc.name, "parenttype": doc.doctype, "parentfield": field.fieldname},
+		)
+		for index, child in enumerate(doc.get(field.fieldname) or [], start=1):
+			child.parent = doc.name
+			child.parenttype = doc.doctype
+			child.parentfield = field.fieldname
+			child.idx = child.idx or index
+			db_insert_tree(child)
+	return True
+
+
+def get_docs_by_key(bundle: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
+	docs_by_key = {}
+	for docs in bundle["docs"].values():
+		for doc in docs:
+			docs_by_key[(doc["doctype"], doc["name"])] = doc
+	for file_doc in bundle["files"]:
+		docs_by_key[(file_doc["doctype"], file_doc["name"])] = file_doc
+	return docs_by_key
 
 
 def db_insert_tree(doc) -> None:
@@ -481,6 +543,7 @@ def print_report(bundle: dict[str, Any], report: dict[str, Any]) -> None:
 	print("Target check:")
 	print(f"- missing docs to insert: {len(report['missing_docs'])}")
 	print(f"- identical docs to skip: {len(report['identical_docs'])}")
+	print(f"- docs to overwrite: {len(report['overwrite_docs'])}")
 	print(f"- doc conflicts: {len(report['doc_conflicts'])}")
 	print(f"- missing files to copy: {len(report['missing_files'])}")
 	print(f"- identical files to skip: {len(report['identical_files'])}")

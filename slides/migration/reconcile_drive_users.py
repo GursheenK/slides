@@ -94,7 +94,16 @@ def get_referenced_users_with_source_info(site: str) -> dict[str, dict[str, Any]
 			info = frappe.db.get_value(
 				"User",
 				user,
-				["email", "first_name", "last_name", "full_name", "user_image", "language", "time_zone"],
+				[
+					"email",
+					"first_name",
+					"last_name",
+					"full_name",
+					"user_image",
+					"language",
+					"time_zone",
+					"enabled",
+				],
 				as_dict=True,
 			)
 			user_info[user] = dict(info or {})
@@ -132,6 +141,7 @@ def inspect_target(
 	try:
 		missing_users = []
 		invalid_users = []
+		disabled_users = []
 		missing_drive_user_role = []
 		missing_drive_settings = []
 		existing_users = []
@@ -139,6 +149,9 @@ def inspect_target(
 		for user, source_info in sorted(source_users.items()):
 			if not is_valid_email_user(user):
 				invalid_users.append(user)
+				continue
+			if is_disabled_source_user(source_info):
+				disabled_users.append(user)
 				continue
 
 			if not frappe.db.exists("User", user):
@@ -157,6 +170,7 @@ def inspect_target(
 		return {
 			"referenced_users": sorted(source_users),
 			"invalid_users": invalid_users,
+			"disabled_users": disabled_users,
 			"missing_users": missing_users,
 			"existing_users": existing_users,
 			"missing_drive_user_role": sorted(set(missing_drive_user_role)),
@@ -274,6 +288,7 @@ def print_report(source_site: str, target_site: str, report: dict[str, Any], dry
 	print(f"Mode: {'dry-run' if dry_run else 'apply'}")
 	print(f"Referenced users: {len(report['referenced_users'])}")
 	print(f"Invalid/skipped users: {len(report['invalid_users'])}")
+	print(f"Disabled/skipped users: {len(report['disabled_users'])}")
 	print(f"Missing User records: {len(report['missing_users'])}")
 	print(f"Existing User records: {len(report['existing_users'])}")
 	print(f"Missing Drive User roles: {len(report['missing_drive_user_role'])}")
@@ -281,6 +296,7 @@ def print_report(source_site: str, target_site: str, report: dict[str, Any], dry
 
 	for title, values in (
 		("Invalid/skipped users", report["invalid_users"]),
+		("Disabled/skipped users", report["disabled_users"]),
 		("Missing User records", [row["user"] for row in report["missing_users"]]),
 		("Missing Drive User roles", report["missing_drive_user_role"]),
 		("Missing Drive Settings", report["missing_drive_settings"]),
@@ -297,6 +313,7 @@ def summarize_report(report: dict[str, Any]) -> dict[str, int]:
 	return {
 		"referenced_users": len(report["referenced_users"]),
 		"invalid_users": len(report["invalid_users"]),
+		"disabled_users": len(report["disabled_users"]),
 		"missing_users": len(report["missing_users"]),
 		"existing_users": len(report["existing_users"]),
 		"missing_drive_user_role": len(report["missing_drive_user_role"]),
@@ -316,6 +333,10 @@ def is_valid_email_user(user: str) -> bool:
 		return bool(validate_email_address(user, throw=False))
 	except Exception:
 		return False
+
+
+def is_disabled_source_user(source_info: dict[str, Any]) -> bool:
+	return "enabled" in source_info and not cint(source_info.get("enabled"))
 
 
 def derive_first_name(user: str) -> str:
