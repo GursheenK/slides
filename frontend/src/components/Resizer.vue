@@ -67,6 +67,8 @@ const resizeHandles = computed(() => {
 		directions = ['line-left', 'line-right']
 	} else if (props.elementType === 'text') {
 		directions = ['text-left', 'text-right']
+	} else if (props.elementType === 'table') {
+		directions = ['right', 'bottom', 'bottom-right']
 	} else {
 		directions = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 	}
