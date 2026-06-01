@@ -3,18 +3,25 @@
 		class="table-element h-full w-full"
 		:style="{ '--cell-border': cellBorder }"
 		@mousedown="handleMouseDown"
+		@dblclick="handleDoubleClick"
 	>
 		<EditorContent v-if="showEditor" :editor="editor" class="h-full w-full" />
-		<div v-else v-html="element.content" class="h-full w-full select-none" />
+		<div
+			v-else
+			v-html="element.content"
+			class="h-full w-full select-none"
+			:class="{ 'cursor-text': isSelected }"
+			@click="handleStaticClick"
+		/>
 	</div>
 </template>
 
 <script setup>
-import { computed, watchEffect, shallowRef } from 'vue'
+import { computed, watchEffect, shallowRef, nextTick } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { tableExtensions } from '@/stores/tiptapSetup'
-import { activeElement } from '@/stores/element'
+import { activeElementIds, focusElementId } from '@/stores/element'
 import { currentSlide } from '@/stores/slide'
 import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand } from '@/stores/commands'
@@ -28,8 +35,10 @@ const props = defineProps({
 const element = defineModel('element', { type: Object, default: null })
 const emit = defineEmits(['clearTimeouts'])
 
+const isSelected = computed(() => activeElementIds.value.includes(element.value.id))
+
 const showEditor = computed(
-	() => activeElement.value?.id === element.value.id && props.mode === 'editor',
+	() => focusElementId.value === element.value.id && props.mode === 'editor',
 )
 
 const editor = shallowRef(null)
@@ -73,16 +82,47 @@ watchEffect((onCleanup) => {
 	})
 })
 
+const focusAtCoords = ({ clientX, clientY }) => {
+	if (!editor.value) return
+	const pos = editor.value.view.posAtCoords({ left: clientX, top: clientY })
+	if (pos) {
+		editor.value.chain().focus().setTextSelection(pos.pos).run()
+	} else {
+		editor.value.commands.focus()
+	}
+}
+
+const enterEditMode = async (e) => {
+	const { clientX, clientY } = e
+	focusElementId.value = element.value.id
+	await nextTick() // wait for EditorContent to mount and schedule its internal nextTick
+	await nextTick() // wait for EditorContent's nextTick to append view.dom to the document
+	focusAtCoords({ clientX, clientY })
+}
+
+const handleDoubleClick = (e) => {
+	if (props.mode !== 'editor') return
+	e.stopPropagation()
+	emit('clearTimeouts')
+	activeElementIds.value = [element.value.id]
+	enterEditMode(e)
+}
+
+// Single click on already-selected table: enter edit mode
+// e.detail >= 2 means this click is part of a dblclick — skip it, handleDoubleClick handles that
+const handleStaticClick = (e) => {
+	if (e.detail >= 2 || !isSelected.value || props.mode !== 'editor') return
+	enterEditMode(e)
+}
+
+const handleMouseDown = (e) => {
+	const isColumnResize = editor.value?.view.dom.classList.contains('resize-cursor')
+	if (isColumnResize || isSelected.value) e.stopPropagation()
+}
+
 const cellBorder = computed(
 	() => `${element.value.borderWidth}px solid ${element.value.borderColor}`,
 )
-
-const handleMouseDown = (e) => {
-	if (editor.value?.view.dom.classList.contains('resize-cursor')) {
-		// needed to not drag table when col resizing
-		e.stopPropagation()
-	}
-}
 </script>
 
 <style>
@@ -91,6 +131,7 @@ const handleMouseDown = (e) => {
 }
 .table-element table {
 	border-collapse: collapse;
+	table-layout: fixed;
 	width: 100%;
 	height: 100%;
 }
@@ -104,5 +145,9 @@ const handleMouseDown = (e) => {
 }
 .table-element p:empty::before {
 	content: '\200B';
+}
+.table-element .ProseMirror td,
+.table-element .ProseMirror th {
+	cursor: text;
 }
 </style>
