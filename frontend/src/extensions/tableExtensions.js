@@ -39,7 +39,7 @@ const CustomTableHeader = TableHeader.extend({
 })
 
 export const tableNodes = [
-	Table.configure({ resizable: true }),
+	Table.configure({ resizable: true, lastColumnResizable: false }),
 	TableRow,
 	CustomTableCell,
 	CustomTableHeader,
