@@ -112,11 +112,14 @@ const handleDoubleClick = (e) => {
 // Single click on already-selected table: enter edit mode
 // e.detail >= 2 means this click is part of a dblclick — skip it, handleDoubleClick handles that
 const handleStaticClick = (e) => {
-	if (e.detail >= 2 || !isSelected.value || props.mode !== 'editor') return
+	if (e.detail >= 2 || !wasSelectedBeforeClick || props.mode !== 'editor') return
 	enterEditMode(e)
 }
 
+let wasSelectedBeforeClick = false
+
 const handleMouseDown = (e) => {
+	wasSelectedBeforeClick = isSelected.value
 	const isColumnResize = editor.value?.view.dom.classList.contains('resize-cursor')
 	if (isColumnResize || isSelected.value) e.stopPropagation()
 }
@@ -127,7 +130,9 @@ const cellBorder = computed(
 
 const rowHeight = computed(() => {
 	const liveHeight = element.value.height + (props.elementOffset.height ?? 0)
-	return `${liveHeight / (element.value.rows || 1)}px`
+	const rows = element.value.rows || 1
+	const internalBorders = (rows - 1) * (element.value.borderWidth || 0)
+	return `${(liveHeight - internalBorders) / rows}px`
 })
 </script>
 
