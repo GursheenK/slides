@@ -5,6 +5,7 @@
 			'--cell-border': cellBorder,
 			'--row-height': rowHeight,
 			'--cell-text-color': element.textColor,
+			opacity: element.opacity / 100,
 		}"
 		@mousedown="handleMouseDown"
 		@dblclick="handleDoubleClick"
