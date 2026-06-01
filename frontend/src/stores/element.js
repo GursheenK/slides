@@ -18,7 +18,7 @@ import { getCommandsToInitElementRefId, getCommandsToUpdateElementRefId } from '
 import { commandHistory } from './historyMeta'
 
 import { generateHTML } from '@tiptap/core'
-import { extensions, patchEmptyParagraphs } from '@/stores/tiptapSetup'
+import { extensions, tableExtensions, patchEmptyParagraphs } from '@/stores/tiptapSetup'
 import {
 	editElementCommand,
 	batchCommand,
@@ -234,10 +234,22 @@ const addShapeElement = async (shapeType) => {
 }
 
 const makeDefaultTableContent = (rows, cols) => {
-	const cell = '<td><p></p></td>'
-	const makeRow = () => `<tr>${cell.repeat(cols)}</tr>`
-	const body = Array.from({ length: rows }, makeRow).join('')
-	return `<table><tbody>${body}</tbody></table>`
+	const cell = {
+		type: 'tableCell',
+		attrs: { colspan: 1, rowspan: 1, colwidth: null },
+		content: [{ type: 'paragraph', attrs: { textAlign: null, lineHeight: '1.5' } }],
+	}
+	const makeRow = () => ({
+		type: 'tableRow',
+		content: Array.from({ length: cols }, () => cell),
+	})
+	return generateHTML(
+		{
+			type: 'doc',
+			content: [{ type: 'table', content: Array.from({ length: rows }, makeRow) }],
+		},
+		tableExtensions,
+	)
 }
 
 const addTableElement = () => {

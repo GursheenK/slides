@@ -86,15 +86,23 @@ const handleMouseDown = (e) => {
 </script>
 
 <style>
+.table-element .tableWrapper {
+	height: 100%;
+}
 .table-element table {
 	border-collapse: collapse;
 	width: 100%;
+	height: 100%;
 }
 .table-element td,
 .table-element th {
 	border: var(--cell-border);
+	padding: 0.5rem;
 	/* min width is needed because col resizing shouldn't collapse two columns into same boundary */
 	min-width: 1px;
 	vertical-align: top;
+}
+.table-element p:empty::before {
+	content: '\200B';
 }
 </style>
