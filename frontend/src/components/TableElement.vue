@@ -1,7 +1,11 @@
 <template>
 	<div
 		class="table-element h-full w-full"
-		:style="{ '--cell-border': cellBorder, '--row-height': rowHeight }"
+		:style="{
+			'--cell-border': cellBorder,
+			'--row-height': rowHeight,
+			'--cell-text-color': element.textColor,
+		}"
 		@mousedown="handleMouseDown"
 		@dblclick="handleDoubleClick"
 	>
@@ -161,6 +165,9 @@ const rowHeight = computed(() => {
 	min-width: 1px;
 	word-break: break-word;
 	position: relative;
+	font-family: 'Inter', sans-serif;
+	font-size: 20px;
+	color: var(--cell-text-color);
 }
 .table-element .column-resize-handle {
 	position: absolute;

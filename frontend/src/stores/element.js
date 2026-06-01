@@ -277,6 +277,7 @@ const addTableElement = () => {
 		cols,
 		borderColor: '#D1D5DBFF',
 		borderWidth: 1,
+		textColor: guessTextColorFromBackground(currentSlide.value.background),
 		content: makeDefaultTableContent(rows, cols, Math.floor(width / cols)),
 	}
 
