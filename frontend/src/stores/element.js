@@ -233,15 +233,17 @@ const addShapeElement = async (shapeType) => {
 	)
 }
 
-const makeDefaultTableContent = (rows, cols) => {
-	const cell = {
+const makeDefaultTableContent = (rows, cols, colWidth) => {
+	// All columns except the last get an explicit width so resizing one column
+	// doesn't affect its left neighbours. The last column stays flexible
+	const makeCell = (colIdx) => ({
 		type: 'tableCell',
-		attrs: { colspan: 1, rowspan: 1, colwidth: null },
+		attrs: { colspan: 1, rowspan: 1, colwidth: colIdx < cols - 1 ? [colWidth] : null },
 		content: [{ type: 'paragraph', attrs: { textAlign: null, lineHeight: '1.5' } }],
-	}
+	})
 	const makeRow = () => ({
 		type: 'tableRow',
-		content: Array.from({ length: cols }, () => cell),
+		content: Array.from({ length: cols }, (_, i) => makeCell(i)),
 	})
 	return generateHTML(
 		{
@@ -275,7 +277,7 @@ const addTableElement = () => {
 		cols,
 		borderColor: '#D1D5DBFF',
 		borderWidth: 1,
-		content: makeDefaultTableContent(rows, cols),
+		content: makeDefaultTableContent(rows, cols, Math.floor(width / cols)),
 	}
 
 	const refCommands = getCommandsToUpdateElementRefId(element) || []
