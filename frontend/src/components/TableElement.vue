@@ -6,18 +6,12 @@
 		@dblclick="handleDoubleClick"
 	>
 		<EditorContent v-if="showEditor" :editor="editor" class="h-full w-full" />
-		<div
-			v-else
-			v-html="element.content"
-			class="h-full w-full select-none"
-			:class="{ 'cursor-text': isSelected }"
-			@click="handleStaticClick"
-		/>
+		<div v-else v-html="element.content" class="h-full w-full select-none" />
 	</div>
 </template>
 
 <script setup>
-import { computed, watchEffect, shallowRef, nextTick } from 'vue'
+import { computed, watch, watchEffect, shallowRef } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { tableExtensions } from '@/stores/tiptapSetup'
@@ -37,9 +31,8 @@ const emit = defineEmits(['clearTimeouts'])
 
 const isSelected = computed(() => activeElementIds.value.includes(element.value.id))
 
-const showEditor = computed(
-	() => focusElementId.value === element.value.id && props.mode === 'editor',
-)
+// Editor mounts only while the table is selected — on-the-fly like TextElement.
+const showEditor = computed(() => isSelected.value && props.mode === 'editor')
 
 const editor = shallowRef(null)
 let contentSnapshot = null
@@ -55,9 +48,11 @@ watchEffect((onCleanup) => {
 	})
 
 	instance.on('focus', () => {
+		focusElementId.value = element.value.id
 		contentSnapshot = instance.getHTML()
 	})
 	instance.on('blur', () => {
+		focusElementId.value = null
 		const newContent = instance.getHTML()
 		if (contentSnapshot !== null && newContent !== contentSnapshot) {
 			commandHistory.execute(
@@ -76,50 +71,62 @@ watchEffect((onCleanup) => {
 	editor.value = instance
 
 	onCleanup(() => {
+		// Commit any content change that wasn't captured by blur (e.g. col resizing,
+		// which prevents default on mousedown so the editor never receives focus).
+		const finalContent = instance.getHTML()
+		if (finalContent !== element.value.content) {
+			commandHistory.execute(
+				editElementCommand({
+					slideId: currentSlide.value.clientId,
+					elementIds: [element.value.id],
+					property: 'content',
+					oldValue: element.value.content,
+					newValue: finalContent,
+				}),
+			)
+		}
 		instance.destroy()
 		editor.value = null
 		contentSnapshot = null
 	})
 })
 
-const focusAtCoords = ({ clientX, clientY }) => {
-	if (!editor.value) return
-	const pos = editor.value.view.posAtCoords({ left: clientX, top: clientY })
-	if (pos) {
-		editor.value.chain().focus().setTextSelection(pos.pos).run()
-	} else {
-		editor.value.commands.focus()
-	}
-}
+// Coordinates from a double-click that arrived before the editor was mounted.
+let pendingFocusCoords = null
 
-const enterEditMode = async (e) => {
-	const { clientX, clientY } = e
-	focusElementId.value = element.value.id
-	await nextTick() // wait for EditorContent to mount and schedule its internal nextTick
-	await nextTick() // wait for EditorContent's nextTick to append view.dom to the document
-	focusAtCoords({ clientX, clientY })
-}
+// Fires after the editor instance appears AND after EditorContent has re-rendered
+// (flush:'post'). rAF runs after all microtasks (including EditorContent's own
+// internal nextTick that appends view.dom), so posAtCoords is guaranteed to work.
+watch(
+	editor,
+	(instance) => {
+		if (!instance || !pendingFocusCoords) return
+		const { clientX, clientY } = pendingFocusCoords
+		pendingFocusCoords = null
+		requestAnimationFrame(() => {
+			const pos = instance.view.posAtCoords({ left: clientX, top: clientY })
+			if (pos) instance.chain().focus().setTextSelection(pos.pos).run()
+			else instance.commands.focus()
+		})
+	},
+	{ flush: 'post' },
+)
 
 const handleDoubleClick = (e) => {
 	if (props.mode !== 'editor') return
 	e.stopPropagation()
-	if (showEditor.value) return
-	emit('clearTimeouts')
-	activeElementIds.value = [element.value.id]
-	enterEditMode(e)
+	if (editor.value) {
+		// Editor already mounted (table was selected before the double-click)
+		const pos = editor.value.view.posAtCoords({ left: e.clientX, top: e.clientY })
+		if (pos) editor.value.chain().focus().setTextSelection(pos.pos).run()
+		else editor.value.commands.focus()
+	} else {
+		// Editor not yet mounted; the watch above will focus once it's ready
+		pendingFocusCoords = { clientX: e.clientX, clientY: e.clientY }
+	}
 }
-
-// Single click on already-selected table: enter edit mode
-// e.detail >= 2 means this click is part of a dblclick — skip it, handleDoubleClick handles that
-const handleStaticClick = (e) => {
-	if (e.detail >= 2 || !wasSelectedBeforeClick || props.mode !== 'editor') return
-	enterEditMode(e)
-}
-
-let wasSelectedBeforeClick = false
 
 const handleMouseDown = (e) => {
-	wasSelectedBeforeClick = isSelected.value
 	const isColumnResize = editor.value?.view.dom.classList.contains('resize-cursor')
 	if (isColumnResize || isSelected.value) e.stopPropagation()
 }
@@ -152,8 +159,21 @@ const rowHeight = computed(() => {
 	padding: 0.5rem;
 	/* min width is needed because col resizing shouldn't collapse two columns into same boundary */
 	min-width: 1px;
-	overflow: hidden;
 	word-break: break-word;
+	position: relative;
+}
+.table-element .column-resize-handle {
+	position: absolute;
+	right: -2px;
+	top: 0;
+	bottom: 0;
+	width: 4px;
+	background-color: #70b6f0;
+	pointer-events: none;
+	z-index: 20;
+}
+.table-element .resize-cursor {
+	cursor: col-resize;
 }
 .table-element .cell-content {
 	/* subtract td's top + bottom padding so td height stays exactly --row-height */
@@ -166,5 +186,9 @@ const rowHeight = computed(() => {
 .table-element .ProseMirror td,
 .table-element .ProseMirror th {
 	cursor: text;
+}
+.table-element .resize-cursor td,
+.table-element .resize-cursor th {
+	cursor: col-resize;
 }
 </style>
