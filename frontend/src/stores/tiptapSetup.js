@@ -690,3 +690,14 @@ export const extensions = [
 	StyledEmptyLine,
 	LineHeight,
 ]
+
+import { Table, TableRow } from '@tiptap/extension-table'
+import { CustomTableCell, CustomTableHeader } from '@/lib/tableExtensions'
+
+export const tableExtensions = [
+	...extensions,
+	Table.configure({ resizable: true }),
+	TableRow,
+	CustomTableCell,
+	CustomTableHeader,
+]
