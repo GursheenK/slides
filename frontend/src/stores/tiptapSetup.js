@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/vue-3'
 import { Extension } from '@tiptap/core'
 import Paragraph from '@tiptap/extension-paragraph'
+import { tableNodes } from '@/extensions/tableExtensions'
 
 import { StarterKit } from '@tiptap/starter-kit'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -691,5 +692,4 @@ export const extensions = [
 	LineHeight,
 ]
 
-import { tableNodes } from '@/extensions/tableExtensions'
 export const tableExtensions = [...extensions, ...tableNodes]

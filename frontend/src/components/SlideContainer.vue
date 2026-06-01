@@ -370,12 +370,18 @@ const applyAspectRatio = (delta, type) => {
 }
 
 const validateMinWidth = (width) => {
-	const minWidth = activeElement.value?.type === 'text' ? 7 : 1
+	let minWidth = activeElement.value?.type === 'text' ? 7 : 1
+	if (activeElement.value?.type === 'table') {
+		minWidth = (activeElement.value.cols || 1) * 10
+	}
 	return width + selectionBounds.width > minWidth
 }
 
 const validateMinHeight = (height) => {
-	const minHeight = activeElement.value?.type === 'text' ? 7 : 29
+	let minHeight = activeElement.value?.type === 'text' ? 7 : 29
+	if (activeElement.value?.type === 'table') {
+		minHeight = (activeElement.value.rows || 1) * 10
+	}
 	return height + selectionBounds.height > minHeight
 }
 

@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="table-element h-full w-full"
-		:style="{ '--cell-border': cellBorder }"
+		class="table-element h-full w-full overflow-hidden"
+		:style="{ '--cell-border': cellBorder, '--row-height': rowHeight }"
 		@mousedown="handleMouseDown"
 		@dblclick="handleDoubleClick"
 	>
@@ -123,6 +123,11 @@ const handleMouseDown = (e) => {
 const cellBorder = computed(
 	() => `${element.value.borderWidth}px solid ${element.value.borderColor}`,
 )
+
+const rowHeight = computed(() => {
+	const liveHeight = element.value.height + (props.elementOffset.height ?? 0)
+	return `${liveHeight / (element.value.rows || 1)}px`
+})
 </script>
 
 <style>
@@ -141,7 +146,14 @@ const cellBorder = computed(
 	padding: 0.5rem;
 	/* min width is needed because col resizing shouldn't collapse two columns into same boundary */
 	min-width: 1px;
-	vertical-align: top;
+	overflow: hidden;
+}
+.table-element .cell-content {
+	height: var(--row-height);
+	overflow: hidden;
+	padding: 0.5rem;
+	box-sizing: border-box;
+	word-break: break-word;
 }
 .table-element p:empty::before {
 	content: '\200B';
