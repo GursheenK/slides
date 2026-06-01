@@ -29,6 +29,7 @@ import {
 const activeElementIds = ref([])
 const focusElementId = ref(null)
 const pairElementId = ref(null)
+const focusTableCell = ref(null)
 
 const activeElements = computed(() => {
 	let elements = []
@@ -229,6 +230,62 @@ const addShapeElement = async (shapeType) => {
 			slideId: currentSlide.value.clientId,
 			elementIds: [element.id],
 			commands,
+		}),
+	)
+}
+
+const makeDefaultTableContent = (rows, cols, headerRow) => {
+	const makeCell = (isHeader, colIdx) => {
+		const tag = isHeader ? 'th' : 'td'
+		const style = isHeader
+			? 'background-color: #1F2937FF; color: #FFFFFFFF; font-weight: bold;'
+			: ''
+		const label = isHeader ? `Header ${colIdx + 1}` : ''
+		return `<${tag}${style ? ` style="${style}"` : ''}><p>${label}</p></${tag}>`
+	}
+	const makeRow = (rowIdx) => {
+		const isHeader = headerRow && rowIdx === 0
+		return `<tr>${Array.from({ length: cols }, (_, c) => makeCell(isHeader, c)).join('')}</tr>`
+	}
+	return `<table><tbody>${Array.from({ length: rows }, (_, r) => makeRow(r)).join('')}</tbody></table>`
+}
+
+const addTableElement = () => {
+	const rows = 3
+	const cols = 3
+	const headerRow = true
+	const width = 480
+	const height = 200
+
+	const slideWidth = slideBounds.width / slideBounds.scale
+	const slideHeight = slideBounds.height / slideBounds.scale
+
+	const element = {
+		id: generateUniqueId(),
+		zIndex: currentSlide.value.elements.length + 1,
+		width,
+		height,
+		left: (slideWidth - width) / 2,
+		top: (slideHeight - height) / 2,
+		opacity: 100,
+		type: 'table',
+		rows,
+		cols,
+		headerRow,
+		borderColor: '#D1D5DBFF',
+		borderWidth: 1,
+		content: makeDefaultTableContent(rows, cols, headerRow),
+	}
+
+	const refCommands = getCommandsToUpdateElementRefId(element) || []
+	commandHistory.execute(
+		batchCommand({
+			slideId: currentSlide.value.clientId,
+			elementIds: [element.id],
+			commands: [
+				addElementCommand({ slideId: currentSlide.value.clientId, element }),
+				...refCommands,
+			],
 		}),
 	)
 }
@@ -944,6 +1001,7 @@ const getElementCenter = (axis) => {
 export {
 	activeElementIds,
 	focusElementId,
+	focusTableCell,
 	pairElementId,
 	activeElements,
 	activeElement,
@@ -952,6 +1010,7 @@ export {
 	addTextElement,
 	addMediaElement,
 	addShapeElement,
+	addTableElement,
 	duplicateElements,
 	deleteElements,
 	selectAllElements,
