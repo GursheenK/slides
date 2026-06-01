@@ -690,3 +690,6 @@ export const extensions = [
 	StyledEmptyLine,
 	LineHeight,
 ]
+
+import { tableNodes } from '@/extensions/tableExtensions'
+export const tableExtensions = [...extensions, ...tableNodes]
