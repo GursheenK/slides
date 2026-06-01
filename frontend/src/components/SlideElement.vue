@@ -19,6 +19,7 @@ import TextElement from '@/components/TextElement.vue'
 import ImageElement from '@/components/ImageElement.vue'
 import VideoElement from '@/components/VideoElement.vue'
 import ShapeElement from '@/components/ShapeElement.vue'
+import TableElement from '@/components/TableElement.vue'
 
 import { activeElementIds } from '@/stores/element'
 
@@ -133,6 +134,8 @@ const getDynamicComponent = (type) => {
 			return VideoElement
 		case 'shape':
 			return ShapeElement
+		case 'table':
+			return TableElement
 		default:
 			return TextElement
 	}

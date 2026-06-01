@@ -30,6 +30,7 @@ const activeElementIds = ref([])
 const focusElementId = ref(null)
 const pairElementId = ref(null)
 const focusTableCell = ref(null)
+const activeTableEditor = ref(null)
 
 const activeElements = computed(() => {
 	let elements = []
@@ -237,11 +238,8 @@ const addShapeElement = async (shapeType) => {
 const makeDefaultTableContent = (rows, cols, headerRow) => {
 	const makeCell = (isHeader, colIdx) => {
 		const tag = isHeader ? 'th' : 'td'
-		const style = isHeader
-			? 'background-color: #1F2937FF; color: #FFFFFFFF; font-weight: bold;'
-			: ''
 		const label = isHeader ? `Header ${colIdx + 1}` : ''
-		return `<${tag}${style ? ` style="${style}"` : ''}><p>${label}</p></${tag}>`
+		return `<${tag}>${label}</${tag}>`
 	}
 	const makeRow = (rowIdx) => {
 		const isHeader = headerRow && rowIdx === 0
@@ -1002,6 +1000,7 @@ export {
 	activeElementIds,
 	focusElementId,
 	focusTableCell,
+	activeTableEditor,
 	pairElementId,
 	activeElements,
 	activeElement,

@@ -32,6 +32,12 @@
 
 		<ShapesPopover />
 
+		<Tooltip text="Table" :hover-delay="0.7">
+			<div class="cursor-pointer rounded p-2 hover:bg-gray-100" @click="addTableElement()">
+				<LayoutGrid size="16" class="stroke-[1.5]" />
+			</div>
+		</Tooltip>
+
 		<div class="h-6 border-l"></div>
 
 		<Tooltip v-for="option in slideActions" :text="option.label" :hover-delay="0.5">
@@ -50,11 +56,11 @@
 <script setup>
 import { ref } from 'vue'
 
-import { Type, ImagePlus, Trash, Copy, Square } from 'lucide-vue-next'
+import { Type, ImagePlus, Trash, Copy, Square, LayoutGrid } from 'lucide-vue-next'
 
 import { Tooltip, FileUploader, toast } from 'frappe-ui'
 import { isPublicPresentation, presentationId } from '@/stores/presentation'
-import { addTextElement, addMediaElement } from '@/stores/element'
+import { addTextElement, addMediaElement, addTableElement } from '@/stores/element'
 import { allowedImageFileTypes } from '@/utils/constants'
 
 import ShapesPopover from '@/components/ShapesPopover.vue'
