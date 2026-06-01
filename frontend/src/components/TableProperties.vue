@@ -43,7 +43,6 @@
 </template>
 
 <script setup>
-import { inject, nextTick } from 'vue'
 import { FormControl } from 'frappe-ui'
 
 import CollapsibleSection from '@/components/controls/CollapsibleSection.vue'
@@ -55,8 +54,6 @@ import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand, batchCommand } from '@/stores/commands'
 import { fieldLabelClasses } from '@/utils/constants'
 
-const setProperty = inject('setProperty')
-
 const headerOptions = [
 	{ label: 'None', value: 'none' },
 	{ label: 'Row', value: 'row' },
@@ -64,69 +61,137 @@ const headerOptions = [
 	{ label: 'Both', value: 'both' },
 ]
 
-const syncStructuralChange = (command, rowsDelta, colsDelta, repeat = 1) => {
-	const editor = activeTableEditor.value
-	if (!editor) return
-	const oldContent = editor.getHTML()
-	const oldRows = activeElement.value.rows
-	const oldCols = activeElement.value.cols
+const getTableRows = (editor) => {
+	const rows = []
+	editor.state.doc.descendants((node, pos) => {
+		if (node.type.name === 'tableRow') rows.push({ node, pos })
+	})
+	return rows
+}
 
-	let chain = editor.chain().focus()
-	for (let i = 0; i < repeat; i++) chain = chain[command]()
+// Position of the last cell in the first row — used to anchor column commands
+const getLastCellPos = (editor) => {
+	const firstRow = getTableRows(editor)[0]
+	let lastOffset = 0
+	firstRow.node.forEach((_, offset) => {
+		lastOffset = offset
+	})
+	return firstRow.pos + 1 + lastOffset + 1
+}
+
+// --- Row/col mutation helpers (return actual count changed) ---
+
+const addRowsAfterLast = (editor, count) => {
+	const lastRow = getTableRows(editor).at(-1)
+	let chain = editor
+		.chain()
+		.focus()
+		.setTextSelection(lastRow.pos + 2)
+	for (let i = 0; i < count; i++) chain = chain.addRowAfter()
 	chain.run()
+	return count
+}
 
-	nextTick(() => {
-		const commands = [
+// Deletes up to `max` empty rows from the end; stops at first row with content
+const deleteEmptyRowsFromEnd = (editor, max) => {
+	const rows = getTableRows(editor)
+	let count = 0
+	for (let i = rows.length - 1; i >= 0 && count < max; i--) {
+		if (rows[i].node.textContent.trim() !== '') break
+		count++
+	}
+	if (count === 0) return 0
+	// Single transaction, end → start so positions stay valid
+	const toRemove = rows.slice(rows.length - count)
+	let tr = editor.state.tr
+	for (let i = toRemove.length - 1; i >= 0; i--) {
+		tr = tr.delete(toRemove[i].pos, toRemove[i].pos + toRemove[i].node.nodeSize)
+	}
+	editor.view.dispatch(tr)
+	return count
+}
+
+const addColsAfterLast = (editor, count) => {
+	let chain = editor.chain().focus().setTextSelection(getLastCellPos(editor))
+	for (let i = 0; i < count; i++) chain = chain.addColumnAfter()
+	chain.run()
+	return count
+}
+
+// Deletes up to `max` empty columns from the end; stops at first col with content
+const deleteEmptyColsFromEnd = (editor, max) => {
+	let count = 0
+	for (let i = 0; i < max; i++) {
+		const rows = getTableRows(editor)
+		const lastColHasContent = rows.some(({ node }) => node.lastChild?.textContent.trim() !== '')
+		if (lastColHasContent) break
+		editor.chain().focus().setTextSelection(getLastCellPos(editor)).deleteColumn().run()
+		count++
+	}
+	return count
+}
+
+const commitDelta = (editor, oldContent, rowsDelta, colsDelta) => {
+	const { rows, cols, id } = activeElement.value
+	const slideId = currentSlide.value.clientId
+	const el = { slideId, elementIds: [id] }
+
+	const commands = [
+		editElementCommand({
+			...el,
+			property: 'content',
+			oldValue: oldContent,
+			newValue: editor.getHTML(),
+		}),
+	]
+	if (rowsDelta !== 0)
+		commands.push(
 			editElementCommand({
-				slideId: currentSlide.value.clientId,
-				elementIds: [activeElement.value.id],
-				property: 'content',
-				oldValue: oldContent,
-				newValue: editor.getHTML(),
-			}),
-		]
-		if (rowsDelta !== 0) {
-			commands.push(
-				editElementCommand({
-					slideId: currentSlide.value.clientId,
-					elementIds: [activeElement.value.id],
-					property: 'rows',
-					oldValue: oldRows,
-					newValue: oldRows + rowsDelta,
-				}),
-			)
-		}
-		if (colsDelta !== 0) {
-			commands.push(
-				editElementCommand({
-					slideId: currentSlide.value.clientId,
-					elementIds: [activeElement.value.id],
-					property: 'cols',
-					oldValue: oldCols,
-					newValue: oldCols + colsDelta,
-				}),
-			)
-		}
-		commandHistory.execute(
-			batchCommand({
-				slideId: currentSlide.value.clientId,
-				elementIds: [activeElement.value.id],
-				commands,
+				...el,
+				property: 'rows',
+				oldValue: rows,
+				newValue: rows + rowsDelta,
 			}),
 		)
-	})
+	if (colsDelta !== 0)
+		commands.push(
+			editElementCommand({
+				...el,
+				property: 'cols',
+				oldValue: cols,
+				newValue: cols + colsDelta,
+			}),
+		)
+
+	commandHistory.execute(batchCommand({ ...el, commands }))
 }
 
 const handleRowsChange = (newVal) => {
-	const delta = newVal - activeElement.value.rows
-	if (delta === 0) return
-	syncStructuralChange(delta > 0 ? 'addRowAfter' : 'deleteRow', delta, 0, Math.abs(delta))
+	const editor = activeTableEditor.value
+	if (!editor) return
+	const expectedDelta = newVal - activeElement.value.rows
+	if (expectedDelta === 0) return
+
+	const oldContent = editor.getHTML()
+	let actualDelta
+	if (expectedDelta > 0) actualDelta = addRowsAfterLast(editor, expectedDelta)
+	else actualDelta = -deleteEmptyRowsFromEnd(editor, -expectedDelta)
+	if (actualDelta === 0) return
+	commitDelta(editor, oldContent, actualDelta, 0)
 }
 
 const handleColsChange = (newVal) => {
-	const delta = newVal - activeElement.value.cols
-	if (delta === 0) return
-	syncStructuralChange(delta > 0 ? 'addColumnAfter' : 'deleteColumn', 0, delta, Math.abs(delta))
+	const editor = activeTableEditor.value
+	if (!editor) return
+	const expectedDelta = newVal - activeElement.value.cols
+	if (expectedDelta === 0) return
+
+	const oldContent = editor.getHTML()
+	let actualDelta
+	if (expectedDelta > 0) actualDelta = addColsAfterLast(editor, expectedDelta)
+	else actualDelta = -deleteEmptyColsFromEnd(editor, -expectedDelta)
+	if (actualDelta === 0) return
+	commitDelta(editor, oldContent, 0, actualDelta)
 }
 
 const handleHeaderChange = (newVal) => {
@@ -134,10 +199,7 @@ const handleHeaderChange = (newVal) => {
 	const oldVal = activeElement.value.header
 	if (newVal === oldVal) return
 
-	if (!editor) {
-		setProperty('header', newVal)
-		return
-	}
+	if (!editor) return
 
 	const needsHeaderRow = newVal === 'row' || newVal === 'both'
 	const hasHeaderRow = oldVal === 'row' || oldVal === 'both'
@@ -150,29 +212,27 @@ const handleHeaderChange = (newVal) => {
 	if (needsHeaderCol !== hasHeaderCol) chain = chain.toggleHeaderColumn()
 	chain.run()
 
-	nextTick(() => {
-		commandHistory.execute(
-			batchCommand({
-				slideId: currentSlide.value.clientId,
-				elementIds: [activeElement.value.id],
-				commands: [
-					editElementCommand({
-						slideId: currentSlide.value.clientId,
-						elementIds: [activeElement.value.id],
-						property: 'content',
-						oldValue: oldContent,
-						newValue: editor.getHTML(),
-					}),
-					editElementCommand({
-						slideId: currentSlide.value.clientId,
-						elementIds: [activeElement.value.id],
-						property: 'header',
-						oldValue: oldVal,
-						newValue: newVal,
-					}),
-				],
-			}),
-		)
-	})
+	commandHistory.execute(
+		batchCommand({
+			slideId: currentSlide.value.clientId,
+			elementIds: [activeElement.value.id],
+			commands: [
+				editElementCommand({
+					slideId: currentSlide.value.clientId,
+					elementIds: [activeElement.value.id],
+					property: 'content',
+					oldValue: oldContent,
+					newValue: editor.getHTML(),
+				}),
+				editElementCommand({
+					slideId: currentSlide.value.clientId,
+					elementIds: [activeElement.value.id],
+					property: 'header',
+					oldValue: oldVal,
+					newValue: newVal,
+				}),
+			],
+		}),
+	)
 }
 </script>
