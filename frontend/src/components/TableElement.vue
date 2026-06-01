@@ -75,10 +75,21 @@ watch(
 			contentSnapshot = null
 		})
 
+		// Sync element.content → editor when changed externally (app undo/redo)
+		const stopContentSync = watch(
+			() => element.value.content,
+			(newContent) => {
+				if (newContent !== instance.getHTML()) {
+					instance.commands.setContent(newContent, false)
+				}
+			},
+		)
+
 		editor.value = instance
 		activeTableEditor.value = instance
 
 		onCleanup(() => {
+			stopContentSync()
 			// Commit any content change that wasn't captured by blur (e.g. col resizing,
 			// which prevents default on mousedown so the editor never receives focus).
 			const finalContent = instance.getHTML()

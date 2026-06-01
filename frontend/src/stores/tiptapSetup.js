@@ -664,14 +664,15 @@ const LineHeight = Extension.create({
 	},
 })
 
-export const extensions = [
-	StarterKit.configure({
-		paragraph: false,
-		bulletList: false,
-		orderedList: false,
-		listItem: false,
-		trailingNode: false,
-	}),
+const starterKitConfig = {
+	paragraph: false,
+	bulletList: false,
+	orderedList: false,
+	listItem: false,
+	trailingNode: false,
+}
+
+const sharedExtensions = [
 	CustomParagraph,
 	CustomListItem,
 	CustomTextStyle,
@@ -692,4 +693,11 @@ export const extensions = [
 	LineHeight,
 ]
 
-export const tableExtensions = [...extensions, ...tableNodes]
+export const extensions = [StarterKit.configure(starterKitConfig), ...sharedExtensions]
+
+// Table editor disables TipTap's built-in history — the app's commandHistory owns undo/redo
+export const tableExtensions = [
+	StarterKit.configure({ ...starterKitConfig, history: false }),
+	...sharedExtensions,
+	...tableNodes,
+]
