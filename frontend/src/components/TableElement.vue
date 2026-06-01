@@ -103,6 +103,7 @@ const enterEditMode = async (e) => {
 const handleDoubleClick = (e) => {
 	if (props.mode !== 'editor') return
 	e.stopPropagation()
+	if (showEditor.value) return
 	emit('clearTimeouts')
 	activeElementIds.value = [element.value.id]
 	enterEditMode(e)
