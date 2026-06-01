@@ -2,7 +2,7 @@
 	<CollapsibleSection
 		title="Layout"
 		:key="activeElements?.length"
-		:initialState="activeElement?.type != 'text'"
+		:initialState="!['text', 'table'].includes(activeElement?.type)"
 	>
 		<template #default>
 			<div class="flex flex-col gap-1.5">

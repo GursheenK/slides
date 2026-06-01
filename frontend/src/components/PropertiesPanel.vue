@@ -21,6 +21,7 @@ import TextProperties from '@/components/TextProperties.vue'
 import ImageProperties from '@/components/ImageProperties.vue'
 import VideoProperties from '@/components/VideoProperties.vue'
 import ShapeProperties from '@/components/ShapeProperties.vue'
+import TableProperties from '@/components/TableProperties.vue'
 import AlignmentControls from '@/components/AlignmentControls.vue'
 import LayoutProperties from '@/components/LayoutProperties.vue'
 import AppearanceProperties from '@/components/AppearanceProperties.vue'
@@ -45,6 +46,8 @@ const activeProperties = computed(() => {
 			return VideoProperties
 		case 'shape':
 			return ShapeProperties
+		case 'table':
+			return TableProperties
 	}
 })
 

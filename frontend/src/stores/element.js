@@ -29,6 +29,7 @@ import {
 const activeElementIds = ref([])
 const focusElementId = ref(null)
 const pairElementId = ref(null)
+const activeTableEditor = ref(null)
 
 const activeElements = computed(() => {
 	let elements = []
@@ -275,6 +276,7 @@ const addTableElement = () => {
 		type: 'table',
 		rows,
 		cols,
+		header: 'none',
 		borderColor: '#D1D5DBFF',
 		borderWidth: 1,
 		textColor: guessTextColorFromBackground(currentSlide.value.background),
@@ -1006,6 +1008,7 @@ export {
 	activeElementIds,
 	focusElementId,
 	pairElementId,
+	activeTableEditor,
 	activeElements,
 	activeElement,
 	setActiveElements,

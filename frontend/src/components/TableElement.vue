@@ -15,11 +15,11 @@
 </template>
 
 <script setup>
-import { computed, watch, watchEffect, shallowRef } from 'vue'
+import { computed, watch, shallowRef } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { tableExtensions } from '@/stores/tiptapSetup'
-import { activeElementIds, focusElementId } from '@/stores/element'
+import { activeElementIds, focusElementId, activeTableEditor } from '@/stores/element'
 import { currentSlide } from '@/stores/slide'
 import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand } from '@/stores/commands'
@@ -41,93 +41,69 @@ const showEditor = computed(() => isSelected.value && props.mode === 'editor')
 const editor = shallowRef(null)
 let contentSnapshot = null
 
-watchEffect((onCleanup) => {
-	if (!showEditor.value) return
-
-	const instance = new Editor({
-		content: element.value.content,
-		extensions: tableExtensions,
-		editable: true,
-		editorProps: { attributes: { class: 'outline-none h-full w-full' } },
-	})
-
-	instance.on('focus', () => {
-		focusElementId.value = element.value.id
-		contentSnapshot = instance.getHTML()
-	})
-	instance.on('blur', () => {
-		focusElementId.value = null
-		const newContent = instance.getHTML()
-		if (contentSnapshot !== null && newContent !== contentSnapshot) {
-			commandHistory.execute(
-				editElementCommand({
-					slideId: currentSlide.value.clientId,
-					elementIds: [element.value.id],
-					property: 'content',
-					oldValue: contentSnapshot,
-					newValue: newContent,
-				}),
-			)
-		}
-		contentSnapshot = null
-	})
-
-	editor.value = instance
-
-	onCleanup(() => {
-		// Commit any content change that wasn't captured by blur (e.g. col resizing,
-		// which prevents default on mousedown so the editor never receives focus).
-		const finalContent = instance.getHTML()
-		if (finalContent !== element.value.content) {
-			commandHistory.execute(
-				editElementCommand({
-					slideId: currentSlide.value.clientId,
-					elementIds: [element.value.id],
-					property: 'content',
-					oldValue: element.value.content,
-					newValue: finalContent,
-				}),
-			)
-		}
-		instance.destroy()
-		editor.value = null
-		contentSnapshot = null
-	})
-})
-
-// Coordinates from a double-click that arrived before the editor was mounted.
-let pendingFocusCoords = null
-
-// Fires after the editor instance appears AND after EditorContent has re-rendered
-// (flush:'post'). rAF runs after all microtasks (including EditorContent's own
-// internal nextTick that appends view.dom), so posAtCoords is guaranteed to work.
 watch(
-	editor,
-	(instance) => {
-		if (!instance || !pendingFocusCoords) return
-		const { clientX, clientY } = pendingFocusCoords
-		pendingFocusCoords = null
-		requestAnimationFrame(() => {
-			const pos = instance.view.posAtCoords({ left: clientX, top: clientY })
-			if (pos) instance.chain().focus().setTextSelection(pos.pos).run()
-			else instance.commands.focus()
+	showEditor,
+	(show, _, onCleanup) => {
+		if (!show) return
+
+		const instance = new Editor({
+			content: element.value.content,
+			extensions: tableExtensions,
+			editable: true,
+			editorProps: { attributes: { class: 'outline-none h-full w-full' } },
+		})
+
+		instance.on('focus', () => {
+			focusElementId.value = element.value.id
+			contentSnapshot = instance.getHTML()
+		})
+		instance.on('blur', () => {
+			focusElementId.value = null
+			const newContent = instance.getHTML()
+			if (contentSnapshot !== null && newContent !== contentSnapshot) {
+				commandHistory.execute(
+					editElementCommand({
+						slideId: currentSlide.value.clientId,
+						elementIds: [element.value.id],
+						property: 'content',
+						oldValue: contentSnapshot,
+						newValue: newContent,
+					}),
+				)
+			}
+			contentSnapshot = null
+		})
+
+		editor.value = instance
+		activeTableEditor.value = instance
+
+		onCleanup(() => {
+			// Commit any content change that wasn't captured by blur (e.g. col resizing,
+			// which prevents default on mousedown so the editor never receives focus).
+			const finalContent = instance.getHTML()
+			if (finalContent !== element.value.content) {
+				commandHistory.execute(
+					editElementCommand({
+						slideId: currentSlide.value.clientId,
+						elementIds: [element.value.id],
+						property: 'content',
+						oldValue: element.value.content,
+						newValue: finalContent,
+					}),
+				)
+			}
+			instance.destroy()
+			editor.value = null
+			activeTableEditor.value = null
+			contentSnapshot = null
 		})
 	},
-	{ flush: 'post' },
+	{ immediate: true },
 )
 
 const handleDoubleClick = (e) => {
 	if (props.mode !== 'editor') return
 	e.stopPropagation()
-	if (editor.value) {
-		// Editor already mounted (table was selected before the double-click)
-		const pos = editor.value.view.posAtCoords({ left: e.clientX, top: e.clientY })
-		if (pos) editor.value.chain().focus().setTextSelection(pos.pos).run()
-		else editor.value.commands.focus()
-	} else {
-		// Editor not yet mounted; the watch above will focus once it's ready
-		pendingFocusCoords = { clientX: e.clientX, clientY: e.clientY }
-	}
 }
 
 const handleMouseDown = (e) => {
@@ -168,6 +144,9 @@ const rowHeight = computed(() => {
 	font-family: 'Inter', sans-serif;
 	font-size: 20px;
 	color: var(--cell-text-color);
+}
+.table-element th {
+	background-color: #e5e7eb;
 }
 .table-element .column-resize-handle {
 	position: absolute;
