@@ -3,6 +3,7 @@
 		class="table-element h-full w-full"
 		:style="{
 			'--cell-border': cellBorder,
+			'--border-width': `${element.value?.borderWidth || 0}px`,
 			'--row-height': rowHeight,
 			'--cell-text-color': element.textColor,
 			opacity: element.opacity / 100,
@@ -130,8 +131,10 @@ const cellBorder = computed(
 const rowHeight = computed(() => {
 	const liveHeight = element.value.height + (props.elementOffset.height ?? 0)
 	const rows = element.value.rows || 1
-	const internalBorders = (rows - 1) * (element.value.borderWidth || 0)
-	return `${(liveHeight - internalBorders) / rows}px`
+	const borderWidth = element.value.borderWidth || 0
+	// (rows+1) border slots: outer top + (rows-1) internal + outer bottom
+	const totalBorderHeight = (rows + 1) * borderWidth
+	return `${(liveHeight - totalBorderHeight) / rows}px`
 })
 </script>
 

@@ -38,21 +38,53 @@
 					/>
 				</div>
 			</div>
+
+			<div class="flex items-center justify-between">
+				<div :class="fieldLabelClasses">Border Width</div>
+				<div class="w-28">
+					<NumberInput
+						:modelValue="activeElement.borderWidth"
+						@update:modelValue="setProperty('borderWidth', $event)"
+						:rangeStart="0"
+						:rangeEnd="10"
+						:rangeStep="1"
+					/>
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between">
+				<div :class="fieldLabelClasses">Border Color</div>
+				<ColorPicker
+					v-model="activeElement.borderColor"
+					@colordown="onBorderColorUpdateStart"
+					@colorup="onBorderColorUpdateEnd"
+				/>
+			</div>
 		</template>
 	</CollapsibleSection>
 </template>
 
 <script setup>
+import { computed, inject } from 'vue'
 import { FormControl } from 'frappe-ui'
 
 import CollapsibleSection from '@/components/controls/CollapsibleSection.vue'
 import NumberInput from '@/components/controls/NumberInput.vue'
+import ColorPicker from '@/components/controls/ColorPicker.vue'
 
 import { activeElement, activeTableEditor } from '@/stores/element'
 import { currentSlide } from '@/stores/slide'
 import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand, batchCommand } from '@/stores/commands'
 import { fieldLabelClasses } from '@/utils/constants'
+
+const setProperty = inject('setProperty')
+const setPropertyDeferred = inject('setPropertyDeferred')
+
+const { onStart: onBorderColorUpdateStart, onEnd: onBorderColorUpdateEnd } = setPropertyDeferred(
+	'element',
+	'borderColor',
+)
 
 const headerOptions = [
 	{ label: 'None', value: 'none' },
