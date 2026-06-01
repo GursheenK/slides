@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="table-element h-full w-full overflow-hidden"
+		class="table-element h-full w-full"
 		:style="{ '--cell-border': cellBorder, '--row-height': rowHeight }"
 		@mousedown="handleMouseDown"
 		@dblclick="handleDoubleClick"
@@ -147,13 +147,12 @@ const rowHeight = computed(() => {
 	/* min width is needed because col resizing shouldn't collapse two columns into same boundary */
 	min-width: 1px;
 	overflow: hidden;
+	word-break: break-word;
 }
 .table-element .cell-content {
-	height: var(--row-height);
+	/* subtract td's top + bottom padding so td height stays exactly --row-height */
+	height: calc(var(--row-height) - 1rem);
 	overflow: hidden;
-	padding: 0.5rem;
-	box-sizing: border-box;
-	word-break: break-word;
 }
 .table-element p:empty::before {
 	content: '\200B';
