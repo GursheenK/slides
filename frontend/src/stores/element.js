@@ -233,6 +233,52 @@ const addShapeElement = async (shapeType) => {
 	)
 }
 
+const makeDefaultTableContent = (rows, cols) => {
+	const cell = '<td><p></p></td>'
+	const makeRow = () => `<tr>${cell.repeat(cols)}</tr>`
+	const body = Array.from({ length: rows }, makeRow).join('')
+	return `<table><tbody>${body}</tbody></table>`
+}
+
+const addTableElement = () => {
+	const rows = 3
+	const cols = 3
+
+	const width = 480
+	const height = 200
+
+	const slideWidth = slideBounds.width / slideBounds.scale
+	const slideHeight = slideBounds.height / slideBounds.scale
+
+	const element = {
+		id: generateUniqueId(),
+		zIndex: currentSlide.value.elements.length + 1,
+		width,
+		height,
+		left: (slideWidth - width) / 2,
+		top: (slideHeight - height) / 2,
+		opacity: 100,
+		type: 'table',
+		rows,
+		cols,
+		borderColor: '#D1D5DBFF',
+		borderWidth: 1,
+		content: makeDefaultTableContent(rows, cols),
+	}
+
+	const refCommands = getCommandsToUpdateElementRefId(element) || []
+	commandHistory.execute(
+		batchCommand({
+			slideId: currentSlide.value.clientId,
+			elementIds: [element.id],
+			commands: [
+				addElementCommand({ slideId: currentSlide.value.clientId, element }),
+				...refCommands,
+			],
+		}),
+	)
+}
+
 const getTextElementDimensions = (presets) => {
 	const tempTextElement = document.createElement('div')
 
@@ -952,6 +998,7 @@ export {
 	addTextElement,
 	addMediaElement,
 	addShapeElement,
+	addTableElement,
 	duplicateElements,
 	deleteElements,
 	selectAllElements,

@@ -33,7 +33,7 @@
 		<ShapesPopover />
 
 		<Tooltip text="Table" :hover-delay="0.7">
-			<div class="cursor-pointer rounded p-2 hover:bg-gray-100">
+			<div class="cursor-pointer rounded p-2 hover:bg-gray-100" @click="addTableElement()">
 				<Table2 size="16" class="stroke-[1.5]" />
 			</div>
 		</Tooltip>
@@ -60,7 +60,7 @@ import { Type, ImagePlus, Trash, Copy, Square, Table2 } from 'lucide-vue-next'
 
 import { Tooltip, FileUploader, toast } from 'frappe-ui'
 import { isPublicPresentation, presentationId } from '@/stores/presentation'
-import { addTextElement, addMediaElement } from '@/stores/element'
+import { addTextElement, addMediaElement, addTableElement } from '@/stores/element'
 import { allowedImageFileTypes } from '@/utils/constants'
 
 import ShapesPopover from '@/components/ShapesPopover.vue'
