@@ -71,21 +71,75 @@
 			</div>
 		</template>
 	</CollapsibleSection>
+
+	<CollapsibleSection v-if="showCellSection" title="Cell">
+		<div class="flex items-center justify-between" @mousedown.prevent>
+			<div :class="fieldLabelClasses">Fill</div>
+			<Checkbox
+				size="sm"
+				class="cursor-pointer px-1"
+				:modelValue="tableEditorStyles.backgroundColor !== null"
+				@update:modelValue="setCellFillEnabled"
+			/>
+		</div>
+
+		<div
+			v-if="tableEditorStyles.backgroundColor !== null"
+			class="flex items-center justify-between"
+			@mousedown.prevent
+		>
+			<div :class="fieldLabelClasses">Fill Color</div>
+			<ColorPicker
+				:modelValue="tableEditorStyles.backgroundColor"
+				@update:modelValue="setCellBackground($event)"
+			/>
+		</div>
+	</CollapsibleSection>
 </template>
 
 <script setup>
-import { computed, inject } from 'vue'
-import { FormControl } from 'frappe-ui'
+import { computed, inject, ref, watch } from 'vue'
+import { FormControl, Checkbox } from 'frappe-ui'
 
 import CollapsibleSection from '@/components/controls/CollapsibleSection.vue'
 import NumberInput from '@/components/controls/NumberInput.vue'
 import ColorPicker from '@/components/controls/ColorPicker.vue'
 
-import { activeElement, activeTableEditor } from '@/stores/element'
+import {
+	activeElement,
+	activeTableEditor,
+	tableEditorStyles,
+	focusElementId,
+} from '@/stores/element'
 import { currentSlide } from '@/stores/slide'
 import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand, batchCommand } from '@/stores/commands'
 import { fieldLabelClasses } from '@/utils/constants'
+
+const cellWasFocused = ref(false)
+
+watch(
+	() => focusElementId.value,
+	(val) => {
+		if (val === activeElement.value?.id) cellWasFocused.value = true
+	},
+)
+
+watch(activeTableEditor, (editor) => {
+	if (!editor) cellWasFocused.value = false
+})
+
+const showCellSection = computed(() => cellWasFocused.value && activeTableEditor.value !== null)
+
+const setCellBackground = (val) => {
+	const editor = activeTableEditor.value
+	if (!editor) return
+	editor.chain().setCellAttribute('backgroundColor', val).run()
+}
+
+const setCellFillEnabled = (enabled) => {
+	setCellBackground(enabled ? '#FFFFFFFF' : null)
+}
 
 const setProperty = inject('setProperty')
 const setPropertyDeferred = inject('setPropertyDeferred')

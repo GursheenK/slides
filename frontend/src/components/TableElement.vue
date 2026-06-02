@@ -22,7 +22,12 @@ import { computed, watch, shallowRef } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { tableExtensions } from '@/stores/tiptapSetup'
-import { activeElementIds, focusElementId, activeTableEditor } from '@/stores/element'
+import {
+	activeElementIds,
+	focusElementId,
+	activeTableEditor,
+	setTableEditorStyles,
+} from '@/stores/element'
 import { currentSlide } from '@/stores/slide'
 import { commandHistory } from '@/stores/historyMeta'
 import { editElementCommand } from '@/stores/commands'
@@ -54,6 +59,10 @@ watch(
 			extensions: tableExtensions,
 			editable: true,
 			editorProps: { attributes: { class: 'outline-none h-full w-full' } },
+			onSelectionUpdate: ({ editor }) => setTableEditorStyles(editor),
+			onTransaction: ({ editor, transaction }) => {
+				if (transaction.docChanged) setTableEditorStyles(editor)
+			},
 		})
 
 		instance.on('focus', () => {
@@ -89,6 +98,7 @@ watch(
 
 		editor.value = instance
 		activeTableEditor.value = instance
+		setTableEditorStyles(instance)
 
 		onCleanup(() => {
 			stopContentSync()

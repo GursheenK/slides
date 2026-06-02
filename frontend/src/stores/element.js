@@ -1,4 +1,4 @@
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, reactive } from 'vue'
 import { call, createResource } from 'frappe-ui'
 
 import {
@@ -30,6 +30,42 @@ const activeElementIds = ref([])
 const focusElementId = ref(null)
 const pairElementId = ref(null)
 const activeTableEditor = ref(null)
+
+const tableEditorStyles = reactive({
+	textAlign: 'left',
+	bold: false,
+	italic: false,
+	strike: false,
+	underline: false,
+	uppercase: false,
+	fontSize: null,
+	fontFamily: null,
+	color: null,
+	letterSpacing: 0,
+	backgroundColor: null,
+})
+
+const setTableEditorStyles = (editor) => {
+	if (!editor) return
+	const activeStyles = editor.getAttributes('textStyle')
+	const cellIsHeader = editor.isActive('tableHeader')
+	const cellAttrs = cellIsHeader
+		? editor.getAttributes('tableHeader')
+		: editor.getAttributes('tableCell')
+	Object.assign(tableEditorStyles, {
+		textAlign: editor.getAttributes('paragraph').textAlign || 'left',
+		bold: editor.isActive('bold'),
+		italic: editor.isActive('italic'),
+		strike: editor.isActive('strike'),
+		underline: editor.isActive('underline'),
+		uppercase: activeStyles.textTransform === 'uppercase',
+		fontSize: parseInt(activeStyles.fontSize, 10) || null,
+		fontFamily: activeStyles.fontFamily || null,
+		color: activeStyles.color || null,
+		letterSpacing: parseInt(activeStyles.letterSpacing, 10) || 0,
+		backgroundColor: cellAttrs.backgroundColor ?? null,
+	})
+}
 
 const activeElements = computed(() => {
 	let elements = []
@@ -1010,6 +1046,8 @@ export {
 	focusElementId,
 	pairElementId,
 	activeTableEditor,
+	tableEditorStyles,
+	setTableEditorStyles,
 	activeElements,
 	activeElement,
 	setActiveElements,
