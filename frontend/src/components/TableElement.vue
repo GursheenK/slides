@@ -6,6 +6,7 @@
 			'--border-width': `${element.value?.borderWidth || 0}px`,
 			'--row-height': rowHeight,
 			'--cell-text-color': element.textColor,
+			'--header-bg-color': element.headerColor || '#E5E7EB',
 			opacity: element.opacity / 100,
 		}"
 		@mousedown="handleMouseDown"
@@ -161,7 +162,7 @@ const rowHeight = computed(() => {
 	color: var(--cell-text-color);
 }
 .table-element th {
-	background-color: #e5e7eb;
+	background-color: var(--header-bg-color);
 }
 .table-element .column-resize-handle {
 	position: absolute;

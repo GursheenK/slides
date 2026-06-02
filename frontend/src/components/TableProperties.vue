@@ -60,6 +60,15 @@
 					@colorup="onBorderColorUpdateEnd"
 				/>
 			</div>
+
+			<div class="flex items-center justify-between">
+				<div :class="fieldLabelClasses">Header Color</div>
+				<ColorPicker
+					v-model="activeElement.headerColor"
+					@colordown="onHeaderColorUpdateStart"
+					@colorup="onHeaderColorUpdateEnd"
+				/>
+			</div>
 		</template>
 	</CollapsibleSection>
 </template>
@@ -84,6 +93,11 @@ const setPropertyDeferred = inject('setPropertyDeferred')
 const { onStart: onBorderColorUpdateStart, onEnd: onBorderColorUpdateEnd } = setPropertyDeferred(
 	'element',
 	'borderColor',
+)
+
+const { onStart: onHeaderColorUpdateStart, onEnd: onHeaderColorUpdateEnd } = setPropertyDeferred(
+	'element',
+	'headerColor',
 )
 
 const headerOptions = [
