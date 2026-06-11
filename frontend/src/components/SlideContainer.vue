@@ -14,6 +14,7 @@
 				v-if="!inReadonlyMode"
 				:isDragging
 				:rotationDelta="rotationDelta"
+				:elementOffset
 				@mousedown="(e) => handleMouseDown(e)"
 			/>
 
@@ -84,6 +85,7 @@ import {
 	duplicateElements,
 	activeElements,
 	addTextElement,
+	cropSelectionToFitContent,
 } from '@/stores/element'
 
 import { commandHistory } from '@/stores/historyMeta'
@@ -216,6 +218,17 @@ const triggerDrag = (e, id) => {
 		if (id && !isMultiSelect && activeElementIds.value[0] !== id) {
 			activeElementIds.value = [id]
 			focusElementId.value = null
+
+			// the selection watcher will crop async — too late for the drag
+			// anchor below, so fit the bounds to this element now
+			cropSelectionToFitContent([id])
+		}
+
+		// anchor synchronously: the drag math must never depend on watcher
+		// flush order or on a previous gesture's state
+		dragAnchor = {
+			left: selectionBounds.left,
+			top: selectionBounds.top,
 		}
 	}
 }
@@ -379,17 +392,11 @@ const elementOffset = reactive({
 	height: 0,
 })
 
-// selection bounds at drag start — anchored lazily on the first flushed
-// delta, after any selection change from the same mousedown has updated bounds
+// selection bounds at drag start — captured synchronously in triggerDrag
 let dragAnchor = null
 
 const handlePositionChange = (total) => {
-	if (!dragAnchor) {
-		dragAnchor = {
-			left: selectionBounds.left - total.left / slideBounds.scale,
-			top: selectionBounds.top - total.top / slideBounds.scale,
-		}
-	}
+	if (!dragAnchor) return
 
 	const desiredLeft = dragAnchor.left + total.left / slideBounds.scale
 	const desiredTop = dragAnchor.top + total.top / slideBounds.scale
@@ -504,15 +511,6 @@ watch(
 	() => {
 		if (!transform.value) return
 		handleSlideTransform()
-	},
-)
-
-// registered before the positionDelta watcher so a new drag invalidates the
-// anchor before the first delta of that drag is processed
-watch(
-	() => isDragging.value,
-	(dragging) => {
-		if (dragging) dragAnchor = null
 	},
 )
 

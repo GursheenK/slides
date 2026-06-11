@@ -30,6 +30,10 @@ const props = defineProps({
 		type: Number,
 		default: 0,
 	},
+	elementOffset: {
+		type: Object,
+		default: () => ({ left: 0, top: 0 }),
+	},
 })
 
 const showResizers = computed(() => {
@@ -52,20 +56,32 @@ const selectionRotation = computed(() => {
 	return (activeElement.value.rotation || 0) + props.rotationDelta
 })
 
-const boxStyles = computed(() => ({
-	position: 'absolute',
-	backgroundColor: activeElementIds.value.length == 1 ? '' : '#70b6f025',
-	outline: outline.value,
-	width: `${selectionBounds.width}px`,
-	height: `${selectionBounds.height}px`,
-	left: `${selectionBounds.left}px`,
-	top: `${selectionBounds.top}px`,
-	boxSizing: 'border-box',
-	zIndex: 9999,
-	pointerEvents: activeElementIds.value.length == 1 ? 'none' : 'auto',
-	transform: selectionRotation.value ? `rotate(${selectionRotation.value}deg)` : '',
-	transformOrigin: 'center center',
-}))
+const boxStyles = computed(() => {
+	const offsetLeft = props.elementOffset.left
+	const offsetTop = props.elementOffset.top
+
+	// selectionBounds track the live position; rendering subtracts the
+	// transient offset and reapplies it as a transform so moving the box
+	// never triggers layout (matches SlideElement)
+	const offsetTransform =
+		offsetLeft || offsetTop ? `translate(${offsetLeft}px, ${offsetTop}px)` : ''
+	const rotateTransform = selectionRotation.value ? `rotate(${selectionRotation.value}deg)` : ''
+
+	return {
+		position: 'absolute',
+		backgroundColor: activeElementIds.value.length == 1 ? '' : '#70b6f025',
+		outline: outline.value,
+		width: `${selectionBounds.width}px`,
+		height: `${selectionBounds.height}px`,
+		left: `${selectionBounds.left - offsetLeft}px`,
+		top: `${selectionBounds.top - offsetTop}px`,
+		boxSizing: 'border-box',
+		zIndex: 9999,
+		pointerEvents: activeElementIds.value.length == 1 ? 'none' : 'auto',
+		transform: [offsetTransform, rotateTransform].filter(Boolean).join(' '),
+		transformOrigin: 'center center',
+	}
+})
 
 const handleSelectionChange = (elementIds) => {
 	if (!elementIds.length) return

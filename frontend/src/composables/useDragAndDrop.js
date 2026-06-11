@@ -41,6 +41,10 @@ export const useDragAndDrop = () => {
 
 		if (!isDragging.value) return
 
+		// button was released outside the window — end the gesture so the
+		// pending offsets get committed instead of leaking into the next drag
+		if (!e.buttons) return stopDragging(e)
+
 		lastX = e.clientX
 		lastY = e.clientY
 
