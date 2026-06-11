@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 
 export const useResizer = () => {
 	const isResizing = ref(false)
@@ -19,8 +19,13 @@ export const useResizer = () => {
 
 	const resizeCursor = computed(() => cursorMap[currentResizer.value] ?? 'default')
 
+	// last processed and latest cursor positions; diffs are summed
+	// per animation frame instead of per mousemove
 	let prevX = 0
 	let prevY = 0
+	let lastX = 0
+	let lastY = 0
+	let frame = null
 
 	const dimensionDelta = ref({
 		width: 0,
@@ -36,8 +41,8 @@ export const useResizer = () => {
 		currentResizer.value = resizer
 		isResizing.value = true
 
-		prevX = e.clientX
-		prevY = e.clientY
+		prevX = lastX = e.clientX
+		prevY = lastY = e.clientY
 
 		window.addEventListener('mousemove', resize)
 		window.addEventListener('mouseup', stopResize, { once: true })
@@ -65,17 +70,16 @@ export const useResizer = () => {
 		}
 	}
 
-	const resize = (e) => {
-		e.preventDefault()
-		e.stopImmediatePropagation()
+	const flushResize = () => {
+		frame = null
 
-		let diffX = prevX - e.clientX
-		let diffY = prevY - e.clientY
+		let diffX = prevX - lastX
+		let diffY = prevY - lastY
 
 		let diffLeft = 0
 		let diffTop = 0
 
-		if (!diffX) return
+		if (!diffX && !diffY) return
 
 		switch (currentResizer.value) {
 			case 'text-left':
@@ -121,16 +125,38 @@ export const useResizer = () => {
 
 		dimensionDelta.value = getDimensionDelta(diffX, diffY, diffLeft, diffTop)
 
-		prevX = e.clientX
-		prevY = e.clientY
+		prevX = lastX
+		prevY = lastY
+	}
+
+	const resize = (e) => {
+		e.preventDefault()
+		e.stopImmediatePropagation()
+
+		lastX = e.clientX
+		lastY = e.clientY
+
+		if (!frame) frame = requestAnimationFrame(flushResize)
 	}
 
 	const stopResize = (e) => {
 		e.preventDefault()
 		e.stopImmediatePropagation()
 
-		currentResizer.value = null
+		// flush movement still waiting on the next frame so the final size is exact
+		if (frame) {
+			cancelAnimationFrame(frame)
+			flushResize()
+		}
+
 		isResizing.value = false
+
+		// the flushed delta is processed by watchers after this task — they
+		// still need the resizer context (aspect ratio, snap offsets), so
+		// clear it only once the flush queue has drained
+		nextTick(() => {
+			currentResizer.value = null
+		})
 
 		window.removeEventListener('mousemove', resize)
 		window.removeEventListener('mouseup', stopResize)
