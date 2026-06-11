@@ -50,10 +50,18 @@ const editElements = (state, slideId, elementIds, property, value) => {
 	})
 }
 
-const editElementCommand = ({ slideId, elementIds, property, oldValue, newValue }) => ({
+const editElementCommand = ({
+	slideId,
+	elementIds,
+	property,
+	oldValue,
+	newValue,
+	skipJumpOnExecute,
+}) => ({
 	key: 'editElement',
 	jumpToSlideId: slideId,
 	jumpToElementIds: elementIds,
+	skipJumpOnExecute,
 	debug: `Edit ${property} of element ${elementIds} on slide ${slideId} to ${newValue}`,
 	execute(state) {
 		editElements(state, slideId, elementIds, property, newValue)
@@ -144,11 +152,12 @@ const reorderSlidesCommand = ({ oldIndex, newIndex }) => ({
 	},
 })
 
-const batchCommand = ({ slideId, elementIds, focusElementId, commands }) => ({
+const batchCommand = ({ slideId, elementIds, focusElementId, commands, skipJumpOnExecute }) => ({
 	key: 'batch',
 	jumpToSlideId: slideId,
 	jumpToElementIds: elementIds,
 	focusElementId: focusElementId,
+	skipJumpOnExecute,
 	debug: 'Batch edit',
 	execute: (state) => {
 		commands.forEach((c) => c.execute(state))

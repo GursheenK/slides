@@ -749,6 +749,8 @@ const updateElementContent = (element) => {
 				slideId: currentSlide.value.clientId,
 				elementIds: [element.id],
 				commands: refCommands,
+				// runs while blurring away from the element, must not steal selection
+				skipJumpOnExecute: true,
 			}),
 		)
 	}

@@ -94,6 +94,10 @@ const getSlideIndexForJump = (action, command, operation) => {
 }
 
 const handleJumpToSlide = (action, command, operation) => {
+	// passive commands (e.g. blur-save) must not navigate away from
+	// wherever the user has moved on to; undo/redo should still jump
+	if (operation === 'execute' && command.skipJumpOnExecute) return
+
 	const slideIdx = getSlideIndexForJump(action, command, operation)
 	const focus = command.key === 'removeSlide' && operation === 'undo' ? false : true
 
@@ -101,6 +105,8 @@ const handleJumpToSlide = (action, command, operation) => {
 }
 
 const handleJumpToElements = (action, command, operation) => {
+	if (operation === 'execute' && command.skipJumpOnExecute) return
+
 	const jumpToIds = command.jumpToElementIds
 	const focusOnId = command.focusElementId
 

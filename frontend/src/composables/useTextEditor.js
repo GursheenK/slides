@@ -89,6 +89,8 @@ export const useTextEditor = () => {
 				property: 'content',
 				oldValue: contentHistory.value,
 				newValue: editor.getHTML(),
+				// saving on blur must not pull selection back to this element
+				skipJumpOnExecute: true,
 			}),
 		)
 	}
