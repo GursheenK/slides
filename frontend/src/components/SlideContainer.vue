@@ -284,21 +284,31 @@ const activeDiv = computed(() => {
 useResizeObserver(activeDiv, (entries) => {
 	const entry = entries[0]
 	const { width, height } = entry.contentRect
-	const target = entry.target.getBoundingClientRect()
-	const useLayoutPosition = ['shape', 'image'].includes(activeElement.value?.type)
 
-	// case:
-	// when element dimensions are changed not by resizer
-	// but by other updates on properties - font size, line height, letter spacing etc.
+	// fires on any size change: resize gestures, and property updates like
+	// font size / line height / letter spacing
+
+	// shapes/images are layout-anchored: left/top derive from element state,
+	// no forced-layout read needed
+	if (['shape', 'image'].includes(activeElement.value?.type)) {
+		updateSelectionBounds({
+			width: width,
+			height: height,
+			left: activeElement.value.left + elementOffset.left,
+			top: activeElement.value.top + elementOffset.top,
+		})
+		return
+	}
+
+	// text elements are center-anchored (translate(-50%, -50%)): their visual
+	// left/top shift whenever the size changes, so read the rendered rect
+	const target = entry.target.getBoundingClientRect()
+
 	updateSelectionBounds({
 		width: width,
 		height: height,
-		left: useLayoutPosition
-			? activeElement.value.left + elementOffset.left
-			: (target.left - slideBounds.left) / scale.value,
-		top: useLayoutPosition
-			? activeElement.value.top + elementOffset.top
-			: (target.top - slideBounds.top) / scale.value,
+		left: (target.left - slideBounds.left) / scale.value,
+		top: (target.top - slideBounds.top) / scale.value,
 	})
 })
 
