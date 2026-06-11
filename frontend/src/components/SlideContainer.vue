@@ -15,8 +15,9 @@
 				:isDragging
 				:rotationDelta="rotationDelta"
 				@mousedown="(e) => handleMouseDown(e)"
-				@setIsSelecting="(val) => (isSelecting = val)"
 			/>
+
+			<MarqueeOverlay v-if="!inReadonlyMode" @setIsSelecting="(val) => (isSelecting = val)" />
 
 			<SnapGuides
 				:ongoingInteraction="hasOngoingInteraction"
@@ -59,6 +60,7 @@ import { useResizeObserver } from '@vueuse/core'
 
 import SnapGuides from '@/components/SnapGuides.vue'
 import SelectionBox from '@/components/SelectionBox.vue'
+import MarqueeOverlay from '@/components/MarqueeOverlay.vue'
 import SlideElement from '@/components/SlideElement.vue'
 import DropTargetOverlay from '@/components/DropTargetOverlay.vue'
 import OverflowContentOverlay from '@/components/OverflowContentOverlay.vue'

@@ -9,24 +9,17 @@
 	</div>
 </template>
 <script setup>
-import { ref, computed, nextTick, useTemplateRef, onMounted, onBeforeUnmount, inject } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 import Resizer from '@/components/Resizer.vue'
 
-import { currentSlide, slideBounds, selectionBounds, updateSelectionBounds } from '@/stores/slide'
+import { slideBounds, selectionBounds, updateSelectionBounds } from '@/stores/slide'
 import {
 	activeElementIds,
-	setActiveElements,
-	getElementPosition,
-	resetFocus,
 	focusElementId,
 	activeElement,
-	isWithinOverlappingBounds,
 	cropSelectionToFitContent,
 } from '@/stores/element'
-
-const slideDiv = inject('slideDiv')
-const slideContainerDiv = inject('slideContainerDiv')
 
 const props = defineProps({
 	isDragging: {
@@ -39,16 +32,11 @@ const props = defineProps({
 	},
 })
 
-const emit = defineEmits(['setIsSelecting'])
-
 const selectedRef = useTemplateRef('selected')
 
 const showResizers = computed(() => {
 	return activeElementIds.value.length == 1 && !focusElementId.value && !props.isDragging
 })
-
-const startX = ref(0)
-const startY = ref(0)
 
 const outline = computed(() => {
 	if (activeElement.value?.shapeType == 'line') return 'none'
@@ -81,95 +69,6 @@ const boxStyles = computed(() => ({
 	transformOrigin: 'center center',
 }))
 
-const initSelection = (e) => {
-	activeElementIds.value = []
-	emit('setIsSelecting', true)
-	nextTick(() => {
-		const currentX = (e.clientX - slideBounds.left) / slideBounds.scale
-		const currentY = (e.clientY - slideBounds.top) / slideBounds.scale
-
-		updateSelectionBounds({
-			left: currentX,
-			top: currentY,
-			width: 0,
-			height: 0,
-		})
-
-		startX.value = currentX
-		startY.value = currentY
-	})
-
-	document.addEventListener('mousemove', updateSelection)
-	document.addEventListener('mouseup', endSelection, { once: true })
-}
-
-const updateSelection = (e) => {
-	const currentX = (e.clientX - slideBounds.left) / slideBounds.scale
-	const currentY = (e.clientY - slideBounds.top) / slideBounds.scale
-
-	const newBounds = {
-		width: Math.abs(currentX - startX.value),
-		height: Math.abs(currentY - startY.value),
-	}
-
-	if (currentX < startX.value) {
-		newBounds.left = currentX
-	}
-	if (currentY < startY.value) {
-		newBounds.top = currentY
-	}
-
-	updateSelectionBounds(newBounds)
-}
-
-const removeSelectionBox = () => {
-	updateSelectionBounds({
-		left: 0,
-		top: 0,
-		width: 0,
-		height: 0,
-	})
-}
-
-const getElementsWithinBoxSurface = () => {
-	let elements = []
-
-	const boxBounds = {
-		left: selectionBounds.left,
-		top: selectionBounds.top,
-		right: selectionBounds.left + selectionBounds.width,
-		bottom: selectionBounds.top + selectionBounds.height,
-	}
-
-	currentSlide.value.elements.forEach((element) => {
-		const elementPosition = getElementPosition(element.id)
-
-		const isWithinBounds = isWithinOverlappingBounds(boxBounds, elementPosition)
-
-		if (isWithinBounds) elements.push(element.id)
-	})
-
-	return elements
-}
-
-const updateSelectedElements = () => {
-	const selectedElements = getElementsWithinBoxSurface()
-
-	if (selectedElements.length) {
-		setActiveElements(selectedElements)
-	} else {
-		removeSelectionBox()
-	}
-}
-
-const endSelection = (e) => {
-	emit('setIsSelecting', false)
-
-	document.removeEventListener('mousemove', updateSelection)
-
-	updateSelectedElements()
-}
-
 const resetSelection = (oldVal) => {
 	updateSelectionBounds({
 		width: 0,
@@ -179,50 +78,8 @@ const resetSelection = (oldVal) => {
 	})
 }
 
-const SELECTION_START_THRESHOLD = 4
-
-let cancelSelectionIntent = null
-
-const watchForSelectionIntent = (downEvent) => {
-	const detectSelection = (moveEvent) => {
-		// button already released (e.g. mouseup outside the window)
-		if (!moveEvent.buttons) return cancelSelectionIntent?.()
-
-		const dx = moveEvent.clientX - downEvent.clientX
-		const dy = moveEvent.clientY - downEvent.clientY
-		if (Math.hypot(dx, dy) < SELECTION_START_THRESHOLD) return
-
-		cancelSelectionIntent?.()
-
-		// anchor the marquee at the press position
-		initSelection(downEvent)
-	}
-
-	const deselectOnRelease = (upEvent) => {
-		cancelSelectionIntent?.()
-		selectSlide(upEvent)
-	}
-
-	cancelSelectionIntent = () => {
-		document.removeEventListener('mousemove', detectSelection)
-		document.removeEventListener('mouseup', deselectOnRelease)
-		cancelSelectionIntent = null
-	}
-
-	document.addEventListener('mousemove', detectSelection)
-	document.addEventListener('mouseup', deselectOnRelease)
-}
-
-const handleMouseDown = (e) => {
-	// marquee / deselect only start from the empty slide or container area
-	if (![slideDiv.value, slideContainerDiv.value].includes(e.target)) return
-
-	watchForSelectionIntent(e)
-}
-
 const handleSelection = (elementIds) => {
 	if (!elementIds.length) return
-	document.removeEventListener('mouseup', endSelection)
 	cropSelectionToFitContent(elementIds)
 }
 
@@ -230,23 +87,6 @@ const handleSelectionChange = (elementIds, oldIds) => {
 	resetSelection(oldIds)
 	handleSelection(elementIds)
 }
-
-const selectSlide = (e) => {
-	e.preventDefault()
-	e.stopPropagation()
-	resetFocus()
-}
-
-onMounted(() => {
-	document.addEventListener('mousedown', handleMouseDown)
-})
-
-onBeforeUnmount(() => {
-	cancelSelectionIntent?.()
-	document.removeEventListener('mousedown', handleMouseDown)
-	document.removeEventListener('mousemove', updateSelection)
-	document.removeEventListener('mouseup', endSelection)
-})
 
 defineExpose({
 	handleSelectionChange,
