@@ -50,10 +50,6 @@ const showResizers = computed(() => {
 const startX = ref(0)
 const startY = ref(0)
 
-let mousedownTimer = 0
-let longpressDuration = 200
-let mousedownStart
-
 const outline = computed(() => {
 	if (activeElement.value?.shapeType == 'line') return 'none'
 
@@ -104,6 +100,7 @@ const initSelection = (e) => {
 	})
 
 	document.addEventListener('mousemove', updateSelection)
+	document.addEventListener('mouseup', endSelection, { once: true })
 }
 
 const updateSelection = (e) => {
@@ -123,8 +120,6 @@ const updateSelection = (e) => {
 	}
 
 	updateSelectionBounds(newBounds)
-
-	document.addEventListener('mouseup', endSelection)
 }
 
 const removeSelectionBox = () => {
@@ -184,37 +179,45 @@ const resetSelection = (oldVal) => {
 	})
 }
 
-const handleMouseDown = (e) => {
-	// ignore long press outside slideContainer and slide elements
-	if (
-		![slideDiv.value, slideContainerDiv.value].includes(e.target) &&
-		!e.target.hasAttribute('data-index')
-	)
-		return
+const SELECTION_START_THRESHOLD = 4
 
-	// ignore long press when userSelect is enabled
-	if (e.target.getAttribute('contenteditable') == 'true') return
+let cancelSelectionIntent = null
 
-	mousedownStart = new Date().getTime()
-	mousedownTimer = setTimeout(() => {
-		initSelection(e)
-	}, longpressDuration)
+const watchForSelectionIntent = (downEvent) => {
+	const detectSelection = (moveEvent) => {
+		// button already released (e.g. mouseup outside the window)
+		if (!moveEvent.buttons) return cancelSelectionIntent?.()
 
-	document.addEventListener('mouseup', handleMouseUp)
-}
+		const dx = moveEvent.clientX - downEvent.clientX
+		const dy = moveEvent.clientY - downEvent.clientY
+		if (Math.hypot(dx, dy) < SELECTION_START_THRESHOLD) return
 
-const handleMouseLeave = () => {
-	mousedownStart = 0
-	clearTimeout(mousedownTimer)
-}
+		cancelSelectionIntent?.()
 
-const handleMouseUp = (e) => {
-	if (new Date().getTime() < mousedownStart + longpressDuration) {
-		selectSlide(e)
-		clearTimeout(mousedownTimer)
-	} else {
-		mousedownStart = 0
+		// anchor the marquee at the press position
+		initSelection(downEvent)
 	}
+
+	const deselectOnRelease = (upEvent) => {
+		cancelSelectionIntent?.()
+		selectSlide(upEvent)
+	}
+
+	cancelSelectionIntent = () => {
+		document.removeEventListener('mousemove', detectSelection)
+		document.removeEventListener('mouseup', deselectOnRelease)
+		cancelSelectionIntent = null
+	}
+
+	document.addEventListener('mousemove', detectSelection)
+	document.addEventListener('mouseup', deselectOnRelease)
+}
+
+const handleMouseDown = (e) => {
+	// marquee / deselect only start from the empty slide or container area
+	if (![slideDiv.value, slideContainerDiv.value].includes(e.target)) return
+
+	watchForSelectionIntent(e)
 }
 
 const handleSelection = (elementIds) => {
@@ -236,13 +239,12 @@ const selectSlide = (e) => {
 
 onMounted(() => {
 	document.addEventListener('mousedown', handleMouseDown)
-	document.addEventListener('mouseleave', handleMouseLeave)
 })
 
 onBeforeUnmount(() => {
+	cancelSelectionIntent?.()
 	document.removeEventListener('mousedown', handleMouseDown)
-	document.removeEventListener('mouseleave', handleMouseLeave)
-	document.removeEventListener('mouseup', handleMouseUp)
+	document.removeEventListener('mousemove', updateSelection)
 	document.removeEventListener('mouseup', endSelection)
 })
 
