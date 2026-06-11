@@ -43,16 +43,17 @@ const getCenterStyles = (axis) => {
 	}
 }
 
-const pairedDiv = computed(() => {
-	return getElementDiv(pairElementId.value)
-})
-
 const getScaledValue = (value, axis) => {
 	if (axis == 'X') return (value - slideBounds.left) / slideBounds.scale
 	return (value - slideBounds.top) / slideBounds.scale
 }
 
-const getElementBounds = (div) => {
+// computed so the paired element is measured once per pairing (it cannot move
+// mid-gesture), not on every re-render during the interaction
+const pairedBounds = computed(() => {
+	const div = getElementDiv(pairElementId.value)
+	if (!div) return null
+
 	const rect = div.getBoundingClientRect()
 	return {
 		left: getScaledValue(rect.left, 'X'),
@@ -62,21 +63,21 @@ const getElementBounds = (div) => {
 		height: rect.height / slideBounds.scale,
 		width: rect.width / slideBounds.scale,
 	}
-}
+})
 
 const getVerticalStyles = (direction) => {
-	if (!pairElementId.value || !props.visibilityMap[direction]) return ''
+	if (!pairedBounds.value || !props.visibilityMap[direction]) return ''
 
-	const pairedBounds = getElementBounds(pairedDiv.value)
+	const { top: pairedTop, height: pairedHeight } = pairedBounds.value
 
 	const left =
 		direction == 'left'
 			? selectionBounds.left - 1
 			: selectionBounds.left + selectionBounds.width
-	const top = Math.min(selectionBounds.top, pairedBounds.top)
+	const top = Math.min(selectionBounds.top, pairedTop)
 	const lastElementHeight =
-		pairedBounds.top < selectionBounds.top ? selectionBounds.height : pairedBounds.height
-	const height = Math.abs(pairedBounds.top - selectionBounds.top) + lastElementHeight
+		pairedTop < selectionBounds.top ? selectionBounds.height : pairedHeight
+	const height = Math.abs(pairedTop - selectionBounds.top) + lastElementHeight
 
 	return {
 		...commonStyles,
@@ -91,17 +92,16 @@ const getVerticalStyles = (direction) => {
 }
 
 const getHorizontalStyles = (direction) => {
-	if (!pairElementId.value || !props.visibilityMap[direction]) return ''
+	if (!pairedBounds.value || !props.visibilityMap[direction]) return ''
 
-	const pairedBounds = getElementBounds(pairedDiv.value)
+	const { left: pairedLeft, width: pairedWidth } = pairedBounds.value
 
 	const top =
 		direction == 'top' ? selectionBounds.top - 1 : selectionBounds.top + selectionBounds.height
-	const left = Math.min(selectionBounds.left, pairedBounds.left)
+	const left = Math.min(selectionBounds.left, pairedLeft)
 
-	const lastElementWidth =
-		pairedBounds.left < selectionBounds.left ? selectionBounds.width : pairedBounds.width
-	const width = Math.abs(pairedBounds.left - selectionBounds.left) + lastElementWidth
+	const lastElementWidth = pairedLeft < selectionBounds.left ? selectionBounds.width : pairedWidth
+	const width = Math.abs(pairedLeft - selectionBounds.left) + lastElementWidth
 
 	return {
 		...commonStyles,

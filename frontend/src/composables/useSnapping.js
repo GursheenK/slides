@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { selectionBounds, currentSlide, slideBounds } from '../stores/slide'
 import { activeElementIds, pairElementId } from '../stores/element'
 import { getElementDiv } from '../stores/elementRegistry'
@@ -186,13 +186,49 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 		}
 	}
 
+	// rects of non-active elements, snapshotted once per gesture — they cannot
+	// move mid-gesture, and reading layout per mousemove forces synchronous reflow
+	const staticElementRects = new Map()
+
+	const cacheStaticElementRects = () => {
+		staticElementRects.clear()
+
+		currentSlide.value?.elements.forEach((element) => {
+			if (activeElementIds.value.includes(element.id)) return
+
+			const elementDiv = getElementDiv(element.id)
+			if (!elementDiv) return
+
+			const rect = elementDiv.getBoundingClientRect()
+			staticElementRects.set(element.id, {
+				left: rect.left,
+				right: rect.right,
+				top: rect.top,
+				bottom: rect.bottom,
+			})
+		})
+	}
+
+	watch(hasOngoingInteraction, (ongoing) => {
+		if (ongoing) cacheStaticElementRects()
+		else staticElementRects.clear()
+	})
+
+	// pan/zoom mid-gesture moves the cached rects on screen — resnapshot
+	watch(
+		() => [slideBounds.left, slideBounds.top, slideBounds.scale],
+		() => {
+			if (hasOngoingInteraction.value) cacheStaticElementRects()
+		},
+	)
+
 	const getDiffFromElement = (element) => {
-		if (activeElementIds.value.includes(element.id)) return
+		if (!target.value) return
 
-		const elementDiv = getElementDiv(element.id)
-		if (!elementDiv || !target.value) return
+		// active elements are never cached, so this also skips self-pairing
+		const elementBounds = staticElementRects.get(element.id)
+		if (!elementBounds) return
 
-		const elementBounds = elementDiv.getBoundingClientRect()
 		const activeBounds = getActiveElementBounds()
 
 		return {
