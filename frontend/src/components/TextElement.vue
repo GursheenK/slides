@@ -61,8 +61,6 @@ const element = defineModel('element', {
 	default: null,
 })
 
-const emit = defineEmits(['clearTimeouts'])
-
 const isEditable = computed(() => focusElementId.value == element.value.id)
 
 const editorStyles = computed(() => ({
@@ -87,8 +85,6 @@ const handleDoubleClick = (e) => {
 		e.stopPropagation()
 		return
 	}
-
-	emit('clearTimeouts')
 
 	activeElementIds.value = [element.value.id]
 	focusElementId.value = element.value.id

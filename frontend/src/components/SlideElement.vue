@@ -6,7 +6,6 @@
 			:element="element"
 			:mode="mode"
 			:elementOffset="elementOffset"
-			@clearTimeouts="$emit('clearTimeouts')"
 			:transitionStyles="transitionStyles"
 		/>
 	</div>
@@ -46,8 +45,6 @@ const props = defineProps({
 		default: 0,
 	},
 })
-
-const emit = defineEmits(['clearTimeouts'])
 
 const getElementKey = (element) => {
 	const id = element.refId || element.id

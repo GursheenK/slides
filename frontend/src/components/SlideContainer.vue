@@ -33,7 +33,6 @@
 				:data-index="element.id"
 				:highlight="highlightElement(element)"
 				@mousedown="(e) => handleMouseDown(e, element)"
-				@clearTimeouts="clearTimeouts"
 			/>
 		</div>
 		<DropTargetOverlay v-show="mediaDragOver" @hideOverlay="hideOverlay" />
@@ -177,12 +176,6 @@ const hideOverlay = () => {
 	mediaDragOver.value = false
 }
 
-let clickTimeout
-
-const clearTimeouts = () => {
-	clearTimeout(clickTimeout)
-}
-
 const triggerSelection = (e, id) => {
 	if (id) {
 		if (!activeElementIds.value.includes(id)) {
@@ -199,11 +192,9 @@ const triggerSelection = (e, id) => {
 }
 
 const handleMouseUp = (e, id) => {
-	clearTimeouts()
-
 	pairElementId.value = null
 
-	if (!isDragging.value) clickTimeout = setTimeout(() => triggerSelection(e, id), 200)
+	if (!isDragging.value) triggerSelection(e, id)
 }
 
 const triggerDrag = (e, id) => {
