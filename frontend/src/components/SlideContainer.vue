@@ -27,6 +27,7 @@
 			<SlideElement
 				v-for="element in currentSlide?.elements"
 				:key="`editor-${element.id}`"
+				:ref="(comp) => registerElementDiv(element.id, comp?.$el)"
 				mode="editor"
 				:element
 				:elementOffset
@@ -88,6 +89,8 @@ import {
 import { commandHistory } from '@/stores/historyMeta'
 
 import { handleCopy, handlePaste } from '@/stores/copyPaste'
+
+import { registerElementDiv, getElementDiv } from '@/stores/elementRegistry'
 
 import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import { useResizer } from '@/composables/useResizer'
@@ -275,7 +278,7 @@ const scale = computed(() => {
 
 const activeDiv = computed(() => {
 	if (activeElementIds.value.length != 1) return null
-	return document.querySelector(`[data-index="${activeElementIds.value[0]}"]`)
+	return getElementDiv(activeElementIds.value[0])
 })
 
 useResizeObserver(activeDiv, (entries) => {

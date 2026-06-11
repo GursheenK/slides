@@ -7,6 +7,7 @@ import { computed } from 'vue'
 
 import { slideBounds, selectionBounds, guideVisibilityMap } from '@/stores/slide'
 import { pairElementId } from '@/stores/element'
+import { getElementDiv } from '@/stores/elementRegistry'
 
 const props = defineProps({
 	visibilityMap: {
@@ -43,7 +44,7 @@ const getCenterStyles = (axis) => {
 }
 
 const pairedDiv = computed(() => {
-	return document.querySelector(`[data-index="${pairElementId.value}"]`)
+	return getElementDiv(pairElementId.value)
 })
 
 const getScaledValue = (value, axis) => {

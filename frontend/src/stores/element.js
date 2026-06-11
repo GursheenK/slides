@@ -11,6 +11,7 @@ import {
 } from './slide'
 import { useTextEditor } from '@/composables/useTextEditor'
 
+import { getElementDiv } from './elementRegistry'
 import { generateUniqueId, cloneObj } from '../utils/helpers'
 import { guessTextColorFromBackground } from '../utils/color'
 import { presentationId } from './presentation'
@@ -676,9 +677,7 @@ const resetFocus = () => {
 }
 
 const getElementPosition = (elementId) => {
-	const elementRect = document
-		.querySelector(`[data-index="${elementId}"]`)
-		.getBoundingClientRect()
+	const elementRect = getElementDiv(elementId).getBoundingClientRect()
 
 	const elementLeft = (elementRect.left - slideBounds.left) / slideBounds.scale
 	const elementTop = (elementRect.top - slideBounds.top) / slideBounds.scale
@@ -694,7 +693,7 @@ const getElementPosition = (elementId) => {
 }
 
 const getElementLayoutPosition = (element) => {
-	const elementDiv = document.querySelector(`[data-index="${element.id}"]`)
+	const elementDiv = getElementDiv(element.id)
 	if (!elementDiv) return getElementPosition(element.id)
 
 	return {
@@ -721,7 +720,7 @@ const isWithinOverlappingBounds = (outer, inner) => {
 }
 
 const addFixedWidthToElement = (deltaWidth) => {
-	const elementDiv = document.querySelector(`[data-index="${activeElement.value.id}"]`)
+	const elementDiv = getElementDiv(activeElement.value.id)
 	if (elementDiv) {
 		const rect = elementDiv.getBoundingClientRect()
 		activeElement.value.width = rect.width

@@ -1,6 +1,7 @@
 import { ref, reactive, computed } from 'vue'
 import { selectionBounds, currentSlide, slideBounds } from '../stores/slide'
 import { activeElementIds, pairElementId } from '../stores/element'
+import { getElementDiv } from '../stores/elementRegistry'
 
 export const useSnapping = (target, parent, currentResizer, hasOngoingInteraction) => {
 	// element wrt slide center
@@ -188,7 +189,7 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 	const getDiffFromElement = (element) => {
 		if (activeElementIds.value.includes(element.id)) return
 
-		const elementDiv = document.querySelector(`[data-index="${element.id}"]`)
+		const elementDiv = getElementDiv(element.id)
 		if (!elementDiv || !target.value) return
 
 		const elementBounds = elementDiv.getBoundingClientRect()
