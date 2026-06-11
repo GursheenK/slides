@@ -379,7 +379,29 @@ const elementOffset = reactive({
 	height: 0,
 })
 
-const handlePositionChange = (delta) => {
+// selection bounds at drag start — anchored lazily on the first flushed
+// delta, after any selection change from the same mousedown has updated bounds
+let dragAnchor = null
+
+const handlePositionChange = (total) => {
+	if (!dragAnchor) {
+		dragAnchor = {
+			left: selectionBounds.left - total.left / slideBounds.scale,
+			top: selectionBounds.top - total.top / slideBounds.scale,
+		}
+	}
+
+	const desiredLeft = dragAnchor.left + total.left / slideBounds.scale
+	const desiredTop = dragAnchor.top + total.top / slideBounds.scale
+
+	// correction toward the cursor-anchored position: snapping and resistance
+	// may withhold or replace it this frame, but the next frame re-measures
+	// against the cursor, so the element can never permanently drift
+	const delta = {
+		left: (desiredLeft - selectionBounds.left) * slideBounds.scale,
+		top: (desiredTop - selectionBounds.top) * slideBounds.scale,
+	}
+
 	if (!delta.left && !delta.top) return
 
 	const totalDelta = getTotalInteractionDelta(delta)
@@ -485,10 +507,19 @@ watch(
 	},
 )
 
+// registered before the positionDelta watcher so a new drag invalidates the
+// anchor before the first delta of that drag is processed
+watch(
+	() => isDragging.value,
+	(dragging) => {
+		if (dragging) dragAnchor = null
+	},
+)
+
 watch(
 	() => positionDelta.value,
-	(delta) => {
-		handlePositionChange(delta)
+	(total) => {
+		handlePositionChange(total)
 	},
 )
 
