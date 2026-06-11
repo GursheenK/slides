@@ -177,10 +177,9 @@ const hideOverlay = () => {
 	mediaDragOver.value = false
 }
 
-let dragTimeout, clickTimeout
+let clickTimeout
 
 const clearTimeouts = () => {
-	clearTimeout(dragTimeout)
 	clearTimeout(clickTimeout)
 }
 
@@ -225,9 +224,36 @@ const triggerDrag = (e, id) => {
 	}
 }
 
+const DRAG_START_THRESHOLD = 4
+
+const watchForDragIntent = (downEvent, id) => {
+	const cancelDragIntent = () => {
+		window.removeEventListener('mousemove', detectDrag)
+		window.removeEventListener('mouseup', cancelDragIntent)
+	}
+
+	const detectDrag = (moveEvent) => {
+		// button already released (e.g. mouseup outside the window)
+		if (!moveEvent.buttons) return cancelDragIntent()
+
+		const dx = moveEvent.clientX - downEvent.clientX
+		const dy = moveEvent.clientY - downEvent.clientY
+		if (Math.hypot(dx, dy) < DRAG_START_THRESHOLD) return
+
+		cancelDragIntent()
+
+		// pass the original mousedown event so the drag measures
+		// from the press position and no movement is lost
+		triggerDrag(downEvent, id)
+	}
+
+	window.addEventListener('mousemove', detectDrag)
+	window.addEventListener('mouseup', cancelDragIntent)
+}
+
 const duplicateAndDrag = (e, id) => {
 	duplicateElements(e, activeElements.value, slideIndex.value, false).then(() => {
-		triggerDrag(e, id)
+		watchForDragIntent(e, id)
 	})
 }
 
@@ -240,11 +266,10 @@ const handleMouseDown = (e, element) => {
 
 	if (e.altKey || e.ctrlKey) return duplicateAndDrag(e, id)
 
-	// wait for click to be registered
-	// if the click is not registered, it means the user is dragging
-	dragTimeout = setTimeout(() => triggerDrag(e, id), 100)
+	// start dragging once the pointer moves past a small threshold
+	watchForDragIntent(e, id)
 
-	// if the click is registered ie. mouseup happens before dragTimeout
+	// if mouseup happens before the threshold is crossed
 	// then consider it a selection instead of dragging
 	e.target.addEventListener('mouseup', () => handleMouseUp(e, id), { once: true })
 }
