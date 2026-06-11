@@ -23,6 +23,8 @@ import { activeElementIds } from '@/stores/element'
 
 import { slideBounds } from '@/stores/slide'
 
+import { rotationDelta } from '@/composables/useRotator'
+
 const props = defineProps({
 	mode: {
 		type: String,
@@ -39,10 +41,6 @@ const props = defineProps({
 	transitionStyles: {
 		type: Object,
 		default: () => ({}),
-	},
-	rotationDelta: {
-		type: Number,
-		default: 0,
 	},
 })
 
@@ -83,9 +81,12 @@ const elementStyle = computed(() => {
 	}
 
 	const elementRotation = element.value.rotation || 0
+
+	// only the active editor element tracks the live rotation delta —
+	// inactive elements never read it, so they don't re-render per frame
 	const rotation =
-		isActive.value && isRotatable.value
-			? elementRotation + props.rotationDelta
+		isActive.value && isRotatable.value && props.mode == 'editor'
+			? elementRotation + rotationDelta.value
 			: elementRotation
 
 	// the transient gesture offset rides on the transform (compositor-only,

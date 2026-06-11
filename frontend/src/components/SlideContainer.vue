@@ -13,7 +13,6 @@
 				ref="selectionBox"
 				v-if="!inReadonlyMode"
 				:isDragging
-				:rotationDelta="rotationDelta"
 				:elementOffset
 				@mousedown="(e) => handleMouseDown(e)"
 			/>
@@ -32,7 +31,6 @@
 				mode="editor"
 				:element
 				:elementOffset
-				:rotationDelta="rotationDelta"
 				:data-index="element.id"
 				:highlight="highlightElement(element)"
 				@mousedown="(e) => handleMouseDown(e, element)"

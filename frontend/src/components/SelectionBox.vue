@@ -14,6 +14,7 @@ import { computed } from 'vue'
 import Resizer from '@/components/Resizer.vue'
 
 import { slideBounds, selectionBounds } from '@/stores/slide'
+import { rotationDelta } from '@/composables/useRotator'
 import {
 	activeElementIds,
 	focusElementId,
@@ -25,10 +26,6 @@ const props = defineProps({
 	isDragging: {
 		type: Boolean,
 		default: false,
-	},
-	rotationDelta: {
-		type: Number,
-		default: 0,
 	},
 	elementOffset: {
 		type: Object,
@@ -53,7 +50,7 @@ const isRotatable = computed(() => {
 
 const selectionRotation = computed(() => {
 	if (activeElementIds.value.length != 1 || !isRotatable.value) return 0
-	return (activeElement.value.rotation || 0) + props.rotationDelta
+	return (activeElement.value.rotation || 0) + rotationDelta.value
 })
 
 const boxStyles = computed(() => {
