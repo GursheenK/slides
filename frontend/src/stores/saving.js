@@ -1,10 +1,5 @@
-import { ref, computed } from 'vue'
-import {
-	presentationDoc,
-	presentationId,
-	hasStateChanged,
-	savePresentationDoc,
-} from '@/stores/presentation'
+import { ref } from 'vue'
+import { presentationId, savePresentationDoc } from '@/stores/presentation'
 import { slides } from '@/stores/slide'
 import { cloneObj } from '@/utils/helpers'
 
@@ -86,15 +81,6 @@ const getPresentationFromLocalDB = async (id) => {
 	})
 }
 
-const isDirty = computed(() => {
-	if (!presentationDoc.value || !slides.value) return false
-
-	const original = JSON.parse(JSON.stringify(presentationDoc.value.slides || []))
-	const current = JSON.parse(JSON.stringify(slides.value || []))
-
-	return hasStateChanged(original, current)
-})
-
 // explicit dirty flag set by every mutation path
 const dirty = ref(false)
 
@@ -153,8 +139,8 @@ const saveCurrentState = async () => {
 			dirty: true,
 		})
 
-		// changes are persisted locally (and queued for sync) — matches the
-		// old isDirty semantics, which also went false after a local save
+		// changes are persisted locally (and queued for sync), so the editor
+		// state is no longer ahead of storage
 		markClean()
 
 		// if offline, do not attempt to sync to server
@@ -168,8 +154,8 @@ const saveCurrentState = async () => {
 }
 
 const saveChanges = async () => {
-	if (!isDirty.value) return
+	if (!dirty.value) return
 	await saveCurrentState()
 }
 
-export { saveCurrentState, saveChanges, isDirty, isSaving, dirty, markDirty, markClean }
+export { saveCurrentState, saveChanges, isSaving, dirty, markDirty, markClean }

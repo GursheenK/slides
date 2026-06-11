@@ -122,7 +122,7 @@ import {
 } from '@/stores/historyMeta'
 
 import { useShortcuts } from '@/composables/useShortcuts'
-import { saveChanges, saveCurrentState, isDirty } from '@/stores/saving'
+import { saveChanges, saveCurrentState, dirty } from '@/stores/saving'
 import { inSlideShowMode, startSlideShow } from '@/stores/slideshow'
 import { Layout } from 'lucide-vue-next'
 import { useCommandHistory } from '@/composables/useCommandHistory'
@@ -209,7 +209,7 @@ const updateUnsyncedRecord = () => {
 }
 
 const handleBeforeUnload = (e) => {
-	if (isDirty.value) {
+	if (dirty.value) {
 		e.preventDefault()
 		e.returnValue = ''
 	}
