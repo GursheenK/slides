@@ -12,6 +12,7 @@ import {
 import { useTextEditor } from '@/composables/useTextEditor'
 
 import { getElementDiv } from './elementRegistry'
+import { markDirty } from './saving'
 import { generateUniqueId, cloneObj } from '../utils/helpers'
 import { guessTextColorFromBackground } from '../utils/color'
 import { presentationId } from './presentation'
@@ -724,6 +725,7 @@ const addFixedWidthToElement = (deltaWidth) => {
 	if (elementDiv) {
 		const rect = elementDiv.getBoundingClientRect()
 		activeElement.value.width = rect.width
+		markDirty()
 	}
 }
 
@@ -756,6 +758,8 @@ const updateElementContent = (element) => {
 
 	element.content = updatedHTML
 	editorOldText = currentText
+
+	markDirty()
 }
 
 const blurAndSaveContent = (element) => {

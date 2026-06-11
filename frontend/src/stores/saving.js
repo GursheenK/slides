@@ -95,6 +95,17 @@ const isDirty = computed(() => {
 	return hasStateChanged(original, current)
 })
 
+// explicit dirty flag set by every mutation path
+const dirty = ref(false)
+
+const markDirty = () => {
+	dirty.value = true
+}
+
+const markClean = () => {
+	dirty.value = false
+}
+
 const isSaving = ref(false)
 
 const syncSnapshotToServer = async (snapshot) => {
@@ -142,6 +153,10 @@ const saveCurrentState = async () => {
 			dirty: true,
 		})
 
+		// changes are persisted locally (and queued for sync) — matches the
+		// old isDirty semantics, which also went false after a local save
+		markClean()
+
 		// if offline, do not attempt to sync to server
 		if (!navigator.onLine) return
 
@@ -157,4 +172,4 @@ const saveChanges = async () => {
 	await saveCurrentState()
 }
 
-export { saveCurrentState, saveChanges, isDirty, isSaving }
+export { saveCurrentState, saveChanges, isDirty, isSaving, dirty, markDirty, markClean }

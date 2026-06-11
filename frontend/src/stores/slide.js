@@ -8,7 +8,7 @@ import {
 	presentationTheme,
 } from '@/stores/presentation'
 import { resetFocus } from '@/stores/element'
-import { saveChanges, isDirty } from '@/stores/saving'
+import { saveChanges, isDirty, markDirty } from '@/stores/saving'
 import { commandHistory } from '@/stores/historyMeta'
 import { generateUniqueId, cloneObj } from '@/utils/helpers'
 import { router } from '@/router'
@@ -140,6 +140,7 @@ const deleteSlide = (deleteActive) => {
 	if (totalLength == 1) {
 		slides.value[0].elements = []
 		focusedSlide.value = null
+		markDirty()
 		return
 	}
 
@@ -188,6 +189,8 @@ const replaceSlide = (layoutObj) => {
 	slides.value.forEach((slide, index) => {
 		slide.idx = index + 1
 	})
+
+	markDirty()
 }
 
 const handleInsertSlide = (index, layoutObj) => {

@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { markDirty } from '@/stores/saving'
 
 export const useCommandHistory = (state, historyMeta = {}) => {
 	const actionOrder = historyMeta.actionOrder
@@ -42,6 +43,8 @@ export const useCommandHistory = (state, historyMeta = {}) => {
 
 		prevCommands.value.push(command)
 		nextCommands.value = []
+
+		markDirty()
 	}
 
 	const undo = async () => {
@@ -55,6 +58,8 @@ export const useCommandHistory = (state, historyMeta = {}) => {
 		}
 
 		nextCommands.value.push(command)
+
+		markDirty()
 	}
 
 	const redo = async () => {
@@ -68,6 +73,8 @@ export const useCommandHistory = (state, historyMeta = {}) => {
 		}
 
 		prevCommands.value.push(command)
+
+		markDirty()
 	}
 
 	const clearHistory = () => {
