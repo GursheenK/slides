@@ -100,6 +100,7 @@ import { useSnapping } from '@/composables/useSnapping'
 import { editElementCommand, batchCommand } from '@/stores/commands'
 
 import { isCmdOrCtrl } from '@/utils/helpers'
+import { minElementSizes } from '@/utils/constants'
 
 const props = defineProps({
 	highlight: Boolean,
@@ -427,14 +428,41 @@ const applyAspectRatio = (delta, type) => {
 	delta.top = (delta.top ?? 0) / ratio
 }
 
-const validateMinWidth = (width) => {
-	const minWidth = activeElement.value?.type === 'text' ? 7 : 1
-	return width / slideBounds.scale + selectionBounds.width > minWidth
+const getMinSizes = () => {
+	return minElementSizes[activeElement.value?.type] ?? minElementSizes.default
 }
 
-const validateMinHeight = (height) => {
-	const minHeight = activeElement.value?.type === 'text' ? 7 : 29
-	return height / slideBounds.scale + selectionBounds.height > minHeight
+// live size during a gesture (selectionBounds lag a frame behind the observer)
+const getCurrentSize = () => ({
+	width: (activeElement.value?.width ?? selectionBounds.width) + elementOffset.width,
+	height: (activeElement.value?.height ?? selectionBounds.height) + elementOffset.height,
+})
+
+// fraction (0..1) of a shrink that fits above the minimum; growing always fits
+const allowedShrinkFraction = (deltaPx, current, min) => {
+	if (deltaPx >= 0) return 1
+
+	const requestedShrink = -deltaPx / slideBounds.scale
+	return Math.min(1, Math.max(0, (current - min) / requestedShrink))
+}
+
+// scale the whole delta so no dimension crosses its minimum — position deltas
+// derive from size deltas, so they must shrink together or the element slides
+const clampToMinSizes = (delta) => {
+	const min = getMinSizes()
+	const size = getCurrentSize()
+
+	const factor = Math.min(
+		allowedShrinkFraction(delta.width, size.width, min.width),
+		allowedShrinkFraction(delta.height, size.height, min.height),
+	)
+
+	if (factor < 1) {
+		delta.width *= factor
+		delta.height *= factor
+		delta.left *= factor
+		delta.top *= factor
+	}
 }
 
 const applyPositionDelta = (delta) => {
@@ -464,12 +492,12 @@ const applyDimensionDelta = (delta) => {
 
 const handleDimensionChange = (delta) => {
 	if (!delta.width && !delta.height) return
-	if (!validateMinWidth(delta.width)) delta.width = 0
-	if (!validateMinHeight(delta.height)) delta.height = 0
 
 	if (['shape', 'image', 'video'].includes(activeElement.value.type)) {
 		applyAspectRatio(delta, activeElement.value.type)
 	}
+
+	clampToMinSizes(delta)
 
 	const totalDelta = getTotalInteractionDelta(delta, 'resizing')
 

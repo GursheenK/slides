@@ -11,4 +11,18 @@ const allowedImageFileTypes = [
 	'image/svg+xml',
 ]
 
-export { sectionClasses, sectionTitleClasses, fieldLabelClasses, allowedImageFileTypes }
+const minElementSizes = {
+	text: { width: 7, height: 7 },
+	shape: { width: 10, height: 16 },
+	image: { width: 20, height: 20 },
+	video: { width: 20, height: 20 },
+	default: { width: 10, height: 16 },
+}
+
+export {
+	sectionClasses,
+	sectionTitleClasses,
+	fieldLabelClasses,
+	allowedImageFileTypes,
+	minElementSizes,
+}
