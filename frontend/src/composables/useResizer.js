@@ -58,6 +58,7 @@ export const useResizer = () => {
 			top = diffTop
 		} else {
 			width = diffX
+			height = diffY
 			left = diffLeft
 			top = diffTop
 		}
@@ -84,21 +85,28 @@ export const useResizer = () => {
 		switch (currentResizer.value) {
 			case 'text-left':
 				diffLeft = -diffX / 2
+				diffY = 0
 				break
 			case 'text-right':
 				diffLeft = -diffX / 2
 				diffX = -diffX
+				diffY = 0
 				break
 			case 'top-right':
 				diffX = -diffX
-				diffTop = -diffX
+				diffTop = -diffY
 				break
 			case 'bottom-left':
 				diffLeft = -diffX
+				diffY = -diffY
 				break
 			case 'top-left':
 				diffLeft = -diffX
-				diffTop = -diffX
+				diffTop = -diffY
+				break
+			case 'bottom-right':
+				diffX = -diffX
+				diffY = -diffY
 				break
 			case 'line-left':
 			case 'left':

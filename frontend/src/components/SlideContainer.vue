@@ -415,17 +415,17 @@ const handlePositionChange = (total) => {
 	applyPositionDelta(totalDelta)
 }
 
-const applyAspectRatio = (delta, type) => {
-	if (!['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(currentResizer.value))
-		return
+const CORNER_RESIZERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 
-	if (type == 'shape') {
-		delta.height = delta.width
-	}
+// media corners lock aspect: rendered height follows width through layout,
+// so the cursor's Y axis is discarded and top derives from the width delta
+const applyAspectRatio = (delta) => {
+	if (!CORNER_RESIZERS.includes(currentResizer.value)) return
 
-	if (!delta.top || !['image', 'video'].includes(type)) return
 	const ratio = selectionBounds.width / selectionBounds.height
-	delta.top = (delta.top ?? 0) / ratio
+
+	delta.height = 0
+	delta.top = ['top-left', 'top-right'].includes(currentResizer.value) ? -delta.width / ratio : 0
 }
 
 const getMinSizes = () => {
@@ -446,23 +446,24 @@ const allowedShrinkFraction = (deltaPx, current, min) => {
 	return Math.min(1, Math.max(0, (current - min) / requestedShrink))
 }
 
-// scale the whole delta so no dimension crosses its minimum — position deltas
-// derive from size deltas, so they must shrink together or the element slides
+// clamp each axis at its minimum, scaling the linked position delta with it —
+// clamping size alone would let the element slide while pinned
 const clampToMinSizes = (delta) => {
 	const min = getMinSizes()
 	const size = getCurrentSize()
 
-	const factor = Math.min(
-		allowedShrinkFraction(delta.width, size.width, min.width),
-		allowedShrinkFraction(delta.height, size.height, min.height),
-	)
+	const widthFactor = allowedShrinkFraction(delta.width, size.width, min.width)
+	const heightFactor = allowedShrinkFraction(delta.height, size.height, min.height)
 
-	if (factor < 1) {
-		delta.width *= factor
-		delta.height *= factor
-		delta.left *= factor
-		delta.top *= factor
-	}
+	delta.width *= widthFactor
+	delta.left *= widthFactor
+
+	delta.height *= heightFactor
+
+	// media corner top derives from width (aspect lock); otherwise top
+	// belongs to the height axis
+	const topFollowsWidth = ['image', 'video'].includes(activeElement.value?.type)
+	delta.top *= topFollowsWidth ? widthFactor : heightFactor
 }
 
 const applyPositionDelta = (delta) => {
@@ -493,8 +494,8 @@ const applyDimensionDelta = (delta) => {
 const handleDimensionChange = (delta) => {
 	if (!delta.width && !delta.height) return
 
-	if (['shape', 'image', 'video'].includes(activeElement.value.type)) {
-		applyAspectRatio(delta, activeElement.value.type)
+	if (['image', 'video'].includes(activeElement.value.type)) {
+		applyAspectRatio(delta)
 	}
 
 	clampToMinSizes(delta)

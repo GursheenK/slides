@@ -400,17 +400,15 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 			const snapOffset = getSnapOffset()
 
 			if (axis == 'right' && resizer.includes('right')) {
-				offsetX = 0
 				offsetWidth = -snapOffset
 			} else if (axis == 'left' && resizer.includes('left')) {
 				offsetX = snapOffset
 				offsetWidth = snapOffset
 			} else if (axis == 'bottom' && resizer.includes('bottom')) {
-				offsetY = 0
-				offsetWidth = -snapOffset
+				offsetHeight = -snapOffset
 			} else if (axis == 'top' && resizer.includes('top')) {
 				offsetY = snapOffset
-				offsetWidth = snapOffset
+				offsetHeight = snapOffset
 			}
 		}
 
@@ -434,6 +432,7 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 		let offsetX = 0
 		let offsetY = 0
 		let offsetWidth = 0
+		let offsetHeight = 0
 
 		if (mode.value == 'resizing') {
 			setResizeSnapOffsets()
@@ -445,6 +444,7 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 			offsetX: offsetX,
 			offsetY: offsetY,
 			offsetWidth: offsetWidth,
+			offsetHeight: offsetHeight,
 		}
 	}
 
@@ -462,14 +462,14 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 			else if (resizer.includes('bottom')) pointY = 'endY'
 		}
 
-		const { offsetX, offsetWidth } = handleSnapMovement('slideCenterX', pointX)
-
-		const { offsetY, offsetWidth: offsetWidthY } = handleSnapMovement('slideCenterY', pointY)
+		const x = handleSnapMovement('slideCenterX', pointX)
+		const y = handleSnapMovement('slideCenterY', pointY)
 
 		return {
-			centerOffsetX: offsetX,
-			centerOffsetWidth: offsetWidth + offsetWidthY,
-			centerOffsetY: offsetY,
+			centerOffsetX: x.offsetX,
+			centerOffsetY: y.offsetY,
+			centerOffsetWidth: x.offsetWidth + y.offsetWidth,
+			centerOffsetHeight: x.offsetHeight + y.offsetHeight,
 		}
 	}
 
@@ -498,27 +498,28 @@ export const useSnapping = (target, parent, currentResizer, hasOngoingInteractio
 	}
 
 	const getPairedOffsets = () => {
-		const { offsetX, offsetWidth } = getOffset('X')
-		const { offsetY, offsetWidth: offsetWidthY } = getOffset('Y')
+		const x = getOffset('X')
+		const y = getOffset('Y')
 
 		return {
-			pairedOffsetX: offsetX,
-			pairedOffsetY: offsetY,
-			pairedOffsetWidth: offsetWidth + offsetWidthY,
+			pairedOffsetX: x.offsetX,
+			pairedOffsetY: y.offsetY,
+			pairedOffsetWidth: x.offsetWidth + y.offsetWidth,
+			pairedOffsetHeight: x.offsetHeight + y.offsetHeight,
 		}
 	}
 
 	const getSnapDelta = () => {
 		if (!target.value) return
 
-		const { centerOffsetX, centerOffsetY, centerOffsetWidth } = getCenterOffsets()
-
-		const { pairedOffsetX, pairedOffsetY, pairedOffsetWidth } = getPairedOffsets()
+		const center = getCenterOffsets()
+		const paired = getPairedOffsets()
 
 		return {
-			x: centerOffsetX - pairedOffsetX || 0,
-			y: centerOffsetY - pairedOffsetY || 0,
-			width: centerOffsetWidth + pairedOffsetWidth || 0,
+			x: center.centerOffsetX - paired.pairedOffsetX || 0,
+			y: center.centerOffsetY - paired.pairedOffsetY || 0,
+			width: center.centerOffsetWidth + paired.pairedOffsetWidth || 0,
+			height: center.centerOffsetHeight + paired.pairedOffsetHeight || 0,
 		}
 	}
 
