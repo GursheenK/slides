@@ -724,7 +724,7 @@ const addFixedWidthToElement = (deltaWidth) => {
 	const elementDiv = getElementDiv(activeElement.value.id)
 	if (elementDiv) {
 		const rect = elementDiv.getBoundingClientRect()
-		activeElement.value.width = rect.width
+		activeElement.value.width = rect.width / slideBounds.scale
 		markDirty()
 	}
 }

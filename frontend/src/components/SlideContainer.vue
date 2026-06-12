@@ -429,12 +429,12 @@ const applyAspectRatio = (delta, type) => {
 
 const validateMinWidth = (width) => {
 	const minWidth = activeElement.value?.type === 'text' ? 7 : 1
-	return width + selectionBounds.width > minWidth
+	return width / slideBounds.scale + selectionBounds.width > minWidth
 }
 
 const validateMinHeight = (height) => {
 	const minHeight = activeElement.value?.type === 'text' ? 7 : 29
-	return height + selectionBounds.height > minHeight
+	return height / slideBounds.scale + selectionBounds.height > minHeight
 }
 
 const applyPositionDelta = (delta) => {
