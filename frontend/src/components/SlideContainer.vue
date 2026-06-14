@@ -19,10 +19,7 @@
 
 			<MarqueeOverlay v-if="!inReadonlyMode" @setIsSelecting="(val) => (isSelecting = val)" />
 
-			<SnapGuides
-				:ongoingInteraction="hasOngoingInteraction"
-				:visibilityMap="visibilityMap"
-			/>
+			<SnapGuides :ongoingInteraction="hasOngoingInteraction" :activeGuides="activeGuides" />
 
 			<SlideElement
 				v-for="element in currentSlide?.elements"
@@ -124,9 +121,8 @@ const hasOngoingInteraction = computed(
 	() => isDragging.value || isResizing.value || isRotating.value,
 )
 
-const { visibilityMap, applySnapping } = useSnapping(
+const { activeGuides, snapForDrag, snapForResize } = useSnapping(
 	selectionBoxRef,
-	slideRef,
 	currentResizer,
 	hasOngoingInteraction,
 )
@@ -344,15 +340,12 @@ const handlePositionChange = (total) => {
 	// snap the desired (cursor-anchored) position, then correct toward it —
 	// the element sits wherever the snapped desired geometry says, so it can
 	// never drift from the cursor
-	const desired = applySnapping(
-		{
-			left: dragAnchor.left + total.left / slideBounds.scale,
-			top: dragAnchor.top + total.top / slideBounds.scale,
-			width: selectionBounds.width,
-			height: selectionBounds.height,
-		},
-		'dragging',
-	)
+	const desired = snapForDrag({
+		left: dragAnchor.left + total.left / slideBounds.scale,
+		top: dragAnchor.top + total.top / slideBounds.scale,
+		width: selectionBounds.width,
+		height: selectionBounds.height,
+	})
 
 	const delta = {
 		left: (desired.left - selectionBounds.left) * slideBounds.scale,
@@ -466,14 +459,13 @@ const handleDimensionChange = (total) => {
 	// snap the desired (cursor-anchored) geometry, then correct toward it —
 	// same model as drag, so the handle can never drift from the cursor.
 	// media only snap their width edges: height/top derive from aspect below
-	const desired = applySnapping(
+	const desired = snapForResize(
 		{
 			left: resizeAnchor.left + total.left / scale,
 			top: resizeAnchor.top + total.top / scale,
 			width: resizeAnchor.width + total.width / scale,
 			height: resizeAnchor.height + total.height / scale,
 		},
-		'resizing',
 		{ axes: isMedia ? ['x'] : ['x', 'y'] },
 	)
 

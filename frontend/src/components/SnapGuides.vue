@@ -1,5 +1,5 @@
 <template>
-	<div v-for="guide in Object.keys(guideStyles)" :key="guide" :style="guideStyles[guide]"></div>
+	<div v-for="(style, name) in guideStyles" :key="name" :style="style"></div>
 </template>
 
 <script setup>
@@ -10,9 +10,10 @@ import { pairElementId } from '@/stores/element'
 import { getElementDiv } from '@/stores/elementRegistry'
 
 const props = defineProps({
-	visibilityMap: {
+	// { x: { source, line } | null, y: { source, line } | null } from useSnapping
+	activeGuides: {
 		type: Object,
-		default: null,
+		default: () => ({ x: null, y: null }),
 	},
 	ongoingInteraction: {
 		type: Boolean,
@@ -20,124 +21,139 @@ const props = defineProps({
 	},
 })
 
-const commonStyles = {
-	position: 'absolute',
-	zIndex: 9999,
-}
-
-const isVisible = (axis) => {
-	const closeToSnap = props.ongoingInteraction && props.visibilityMap?.[axis]
-	const hoveringOverControl = guideVisibilityMap[axis]
-	return closeToSnap || hoveringOverControl
-}
-
-const getCenterStyles = (axis) => {
-	return {
-		...commonStyles,
-		backgroundColor: '#70b6f080',
-		width: axis === 'centerY' ? '1px' : '100%',
-		height: axis === 'centerX' ? '1px' : '100%',
-		left: axis === 'centerY' ? '50%' : '0',
-		top: axis === 'centerX' ? '50%' : '0',
-		display: isVisible(axis) ? 'block' : 'none',
-	}
-}
+const GUIDE_COLOR = '#70b6f080'
+const commonStyles = { position: 'absolute', zIndex: 9999 }
 
 const getScaledValue = (value, axis) => {
 	if (axis == 'X') return (value - slideBounds.left) / slideBounds.scale
 	return (value - slideBounds.top) / slideBounds.scale
 }
 
-// computed so the paired element is measured once per pairing (it cannot move
-// mid-gesture), not on every re-render during the interaction
+// paired element measured once per pairing (it can't move mid-gesture)
 const pairedBounds = computed(() => {
 	const div = getElementDiv(pairElementId.value)
 	if (!div) return null
 
 	const rect = div.getBoundingClientRect()
-	return {
-		left: getScaledValue(rect.left, 'X'),
-		top: getScaledValue(rect.top, 'Y'),
-		right: getScaledValue(rect.right, 'X'),
-		bottom: getScaledValue(rect.bottom, 'Y'),
-		height: rect.height / slideBounds.scale,
-		width: rect.width / slideBounds.scale,
-	}
+	const left = getScaledValue(rect.left, 'X')
+	const top = getScaledValue(rect.top, 'Y')
+	const right = getScaledValue(rect.right, 'X')
+	const bottom = getScaledValue(rect.bottom, 'Y')
+
+	return { left, top, right, bottom, centerX: (left + right) / 2, centerY: (top + bottom) / 2 }
 })
 
-const getVerticalStyles = (direction) => {
-	if (!pairedBounds.value || !props.visibilityMap[direction]) return ''
+// the selection's edges in slide units
+const selectionEdges = computed(() => ({
+	left: selectionBounds.left,
+	right: selectionBounds.left + selectionBounds.width,
+	top: selectionBounds.top,
+	bottom: selectionBounds.top + selectionBounds.height,
+}))
 
-	const { top: pairedTop, height: pairedHeight } = pairedBounds.value
-
-	const left =
-		direction == 'left'
-			? selectionBounds.left - 1
-			: selectionBounds.left + selectionBounds.width
-	const top = Math.min(selectionBounds.top, pairedTop)
-	const lastElementHeight =
-		pairedTop < selectionBounds.top ? selectionBounds.height : pairedHeight
-	const height = Math.abs(pairedTop - selectionBounds.top) + lastElementHeight
+// solid center line through the slide (drag-to-center snap, or hovering a control)
+const getVerticalCenterStyle = () => {
+	const snapped = props.ongoingInteraction && props.activeGuides?.x?.source === 'slide'
+	if (!snapped && !guideVisibilityMap.centerY) return null
 
 	return {
 		...commonStyles,
-		borderColor: '#70b6f080',
+		backgroundColor: GUIDE_COLOR,
+		width: '1px',
+		height: '100%',
+		left: '50%',
+		top: '0',
+	}
+}
+
+const getHorizontalCenterStyle = () => {
+	const snapped = props.ongoingInteraction && props.activeGuides?.y?.source === 'slide'
+	if (!snapped && !guideVisibilityMap.centerX) return null
+
+	return {
+		...commonStyles,
+		backgroundColor: GUIDE_COLOR,
+		width: '100%',
+		height: '1px',
+		left: '0',
+		top: '50%',
+	}
+}
+
+// dashed line aligning the selection to a neighbour's edge/center; the line
+// sits on the neighbour's feature and spans the union of both elements
+const getVerticalElementStyle = () => {
+	const guide = props.activeGuides?.x
+	if (!props.ongoingInteraction || guide?.source !== 'element' || !pairedBounds.value) return null
+
+	const neighbour = pairedBounds.value
+	const selection = selectionEdges.value
+
+	// the dashed line spans from the topmost to the bottommost of the two elements
+	const top = Math.min(selection.top, neighbour.top)
+	const bottom = Math.max(selection.bottom, neighbour.bottom)
+
+	return {
+		...commonStyles,
+		borderColor: GUIDE_COLOR,
 		borderStyle: 'dashed',
 		borderWidth: '0 0 0 1px',
-		left: `${left}px`,
+		left: `${neighbour[guide.line]}px`,
 		top: `${top}px`,
-		height: `${height}px`,
-		display: isVisible(direction) ? 'block' : 'none',
+		height: `${bottom - top}px`,
 	}
 }
 
-const getHorizontalStyles = (direction) => {
-	if (!pairedBounds.value || !props.visibilityMap[direction]) return ''
+const getHorizontalElementStyle = () => {
+	const guide = props.activeGuides?.y
+	if (!props.ongoingInteraction || guide?.source !== 'element' || !pairedBounds.value) return null
 
-	const { left: pairedLeft, width: pairedWidth } = pairedBounds.value
+	const neighbour = pairedBounds.value
+	const selection = selectionEdges.value
 
-	const top =
-		direction == 'top' ? selectionBounds.top - 1 : selectionBounds.top + selectionBounds.height
-	const left = Math.min(selectionBounds.left, pairedLeft)
-
-	const lastElementWidth = pairedLeft < selectionBounds.left ? selectionBounds.width : pairedWidth
-	const width = Math.abs(pairedLeft - selectionBounds.left) + lastElementWidth
+	// the dashed line spans from the leftmost to the rightmost of the two elements
+	const left = Math.min(selection.left, neighbour.left)
+	const right = Math.max(selection.right, neighbour.right)
 
 	return {
 		...commonStyles,
-		borderColor: '#70b6f080',
+		borderColor: GUIDE_COLOR,
 		borderStyle: 'dashed',
 		borderWidth: '1px 0 0 0',
-		top: `${top}px`,
+		top: `${neighbour[guide.line]}px`,
 		left: `${left}px`,
-		width: `${width}px`,
-		display: isVisible(direction) ? 'block' : 'none',
+		width: `${right - left}px`,
 	}
 }
 
-const getEdgeStyles = (direction) => {
+// slide-edge guides shown while hovering alignment controls
+const getEdgeStyle = (direction) => {
+	if (!guideVisibilityMap[direction]) return null
+
+	const isVertical = ['leftEdge', 'rightEdge'].includes(direction)
 	return {
 		...commonStyles,
-		width: ['leftEdge', 'rightEdge'].includes(direction) ? '1.5px' : '100%',
-		height: ['topEdge', 'bottomEdge'].includes(direction) ? '1.5px' : '100%',
-		left: direction == 'rightEdge' ? `calc(100% - 1.5px)` : '0%',
-		top: direction == 'bottomEdge' ? `calc(100% - 1.5px)` : '0%',
-		display: isVisible(direction) ? 'block' : 'none',
+		backgroundColor: GUIDE_COLOR,
+		width: isVertical ? '1.5px' : '100%',
+		height: isVertical ? '100%' : '1.5px',
+		left: direction == 'rightEdge' ? 'calc(100% - 1.5px)' : '0',
+		top: direction == 'bottomEdge' ? 'calc(100% - 1.5px)' : '0',
 	}
 }
 
 const guideStyles = computed(() => {
-	return {
-		centerX: getCenterStyles('centerX'),
-		centerY: getCenterStyles('centerY'),
-		left: getVerticalStyles('left'),
-		right: getVerticalStyles('right'),
-		top: getHorizontalStyles('top'),
-		bottom: getHorizontalStyles('bottom'),
-		leftEdge: getEdgeStyles('leftEdge'),
-		rightEdge: getEdgeStyles('rightEdge'),
-		topEdge: getEdgeStyles('topEdge'),
-		bottomEdge: getEdgeStyles('bottomEdge'),
+	const guides = {
+		centerVertical: getVerticalCenterStyle(),
+		centerHorizontal: getHorizontalCenterStyle(),
+		elementVertical: getVerticalElementStyle(),
+		elementHorizontal: getHorizontalElementStyle(),
+		leftEdge: getEdgeStyle('leftEdge'),
+		rightEdge: getEdgeStyle('rightEdge'),
+		topEdge: getEdgeStyle('topEdge'),
+		bottomEdge: getEdgeStyle('bottomEdge'),
 	}
+
+	// only keep visible guides so the v-for renders nothing when idle
+	return Object.fromEntries(Object.entries(guides).filter(([, style]) => style))
 })
 </script>
