@@ -124,7 +124,7 @@ const hasOngoingInteraction = computed(
 	() => isDragging.value || isResizing.value || isRotating.value,
 )
 
-const { visibilityMap, resistanceMap, handleSnapping } = useSnapping(
+const { visibilityMap, applySnapping } = useSnapping(
 	selectionBoxRef,
 	slideRef,
 	currentResizer,
@@ -328,62 +328,6 @@ const togglePanZoom = () => {
 	allowPanAndZoom.value = !allowPanAndZoom.value
 }
 
-const applyResistance = (axis, delta) => {
-	const scaledThreshold = (0.01 * selectionBounds.width) / slideBounds.scale
-
-	const escapeDelta = Math.max(1.5, Math.min(5, scaledThreshold))
-
-	let useResistanceKeys = []
-	let pullDelta = null
-
-	if (axis == 'X') {
-		useResistanceKeys = ['left', 'right', 'centerY']
-		pullDelta = delta.left
-	} else if (axis == 'Y') {
-		useResistanceKeys = ['top', 'bottom', 'centerX']
-		pullDelta = delta.top
-	} else if (axis == null && currentResizer.value) {
-		useResistanceKeys = ['left', 'right', 'top', 'bottom', 'centerX', 'centerY']
-		pullDelta = delta.width
-	}
-
-	const useResistance = useResistanceKeys.some((key) => resistanceMap[key])
-
-	return useResistance && Math.abs(pullDelta) < escapeDelta
-}
-
-const updateTotalDeltaForResize = (totalDelta, delta, width, height) => {
-	totalDelta.width = applyResistance(null, delta) ? 0 : width
-	totalDelta.height = applyResistance(null, delta) ? 0 : height
-
-	// if resisting width change, don't apply top change either otherwise
-	// element sticks to one axis and drags on other which shouldn't happen on resize
-	if (totalDelta.width === 0 && !['top', 'bottom'].includes(currentResizer.value)) {
-		totalDelta.top = 0
-	}
-}
-
-const getTotalInteractionDelta = (delta, interaction = 'dragging') => {
-	const snapDelta = handleSnapping(interaction)
-
-	const left = snapDelta.x || delta.left
-	const top = snapDelta.y || delta.top
-
-	const totalDelta = {
-		left: applyResistance('X', delta) ? 0 : left,
-		top: applyResistance('Y', delta) ? 0 : top,
-	}
-
-	const width = snapDelta.width || delta.width
-	const height = snapDelta.height || delta.height
-
-	if (interaction === 'resizing') {
-		updateTotalDeltaForResize(totalDelta, delta, width, height)
-	}
-
-	return totalDelta
-}
-
 const elementOffset = reactive({
 	left: 0,
 	top: 0,
@@ -397,22 +341,27 @@ let dragAnchor = null
 const handlePositionChange = (total) => {
 	if (!dragAnchor) return
 
-	const desiredLeft = dragAnchor.left + total.left / slideBounds.scale
-	const desiredTop = dragAnchor.top + total.top / slideBounds.scale
+	// snap the desired (cursor-anchored) position, then correct toward it —
+	// the element sits wherever the snapped desired geometry says, so it can
+	// never drift from the cursor
+	const desired = applySnapping(
+		{
+			left: dragAnchor.left + total.left / slideBounds.scale,
+			top: dragAnchor.top + total.top / slideBounds.scale,
+			width: selectionBounds.width,
+			height: selectionBounds.height,
+		},
+		'dragging',
+	)
 
-	// correction toward the cursor-anchored position: snapping and resistance
-	// may withhold or replace it this frame, but the next frame re-measures
-	// against the cursor, so the element can never permanently drift
 	const delta = {
-		left: (desiredLeft - selectionBounds.left) * slideBounds.scale,
-		top: (desiredTop - selectionBounds.top) * slideBounds.scale,
+		left: (desired.left - selectionBounds.left) * slideBounds.scale,
+		top: (desired.top - selectionBounds.top) * slideBounds.scale,
 	}
 
 	if (!delta.left && !delta.top) return
 
-	const totalDelta = getTotalInteractionDelta(delta)
-
-	applyPositionDelta(totalDelta)
+	applyPositionDelta(delta)
 }
 
 const CORNER_RESIZERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
@@ -491,22 +440,61 @@ const applyDimensionDelta = (delta) => {
 	elementOffset.height += deltaHeight
 }
 
-const handleDimensionChange = (delta) => {
-	if (!delta.width && !delta.height) return
+// selection bounds + dimensions at resize start — captured synchronously in
+// startElementResize, same rule as the drag anchor
+let resizeAnchor = null
 
-	if (['image', 'video'].includes(activeElement.value.type)) {
-		applyAspectRatio(delta)
+const startElementResize = (e, resizer) => {
+	resizeAnchor = {
+		left: selectionBounds.left,
+		top: selectionBounds.top,
+		width: selectionBounds.width,
+		height: selectionBounds.height,
 	}
+
+	startResize(e, resizer)
+}
+
+const handleDimensionChange = (total) => {
+	if (!resizeAnchor) return
+
+	const scale = slideBounds.scale
+	const size = getCurrentSize()
+
+	const isMedia = ['image', 'video'].includes(activeElement.value.type)
+
+	// snap the desired (cursor-anchored) geometry, then correct toward it —
+	// same model as drag, so the handle can never drift from the cursor.
+	// media only snap their width edges: height/top derive from aspect below
+	const desired = applySnapping(
+		{
+			left: resizeAnchor.left + total.left / scale,
+			top: resizeAnchor.top + total.top / scale,
+			width: resizeAnchor.width + total.width / scale,
+			height: resizeAnchor.height + total.height / scale,
+		},
+		'resizing',
+		{ axes: isMedia ? ['x'] : ['x', 'y'] },
+	)
+
+	const delta = {
+		width: (desired.width - size.width) * scale,
+		height: (desired.height - size.height) * scale,
+		left: (desired.left - selectionBounds.left) * scale,
+		top: (desired.top - selectionBounds.top) * scale,
+	}
+
+	if (!delta.width && !delta.height && !delta.left && !delta.top) return
+
+	if (isMedia) applyAspectRatio(delta)
 
 	clampToMinSizes(delta)
 
-	const totalDelta = getTotalInteractionDelta(delta, 'resizing')
-
-	applyPositionDelta(totalDelta)
+	applyPositionDelta(delta)
 
 	if (!activeElement.value.width) addFixedWidthToElement()
 
-	applyDimensionDelta(totalDelta)
+	applyDimensionDelta(delta)
 }
 
 const updateSlideBounds = () => {
@@ -583,7 +571,7 @@ provide('slideDiv', slideRef)
 provide('slideContainerDiv', slideContainerRef)
 provide('resizer', {
 	currentResizer,
-	startResize,
+	startResize: startElementResize,
 })
 provide('rotator', {
 	startRotate,

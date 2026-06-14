@@ -19,10 +19,10 @@ export const useResizer = () => {
 
 	const resizeCursor = computed(() => cursorMap[currentResizer.value] ?? 'default')
 
-	// last processed and latest cursor positions; diffs are summed
-	// per animation frame instead of per mousemove
-	let prevX = 0
-	let prevY = 0
+	// press and latest cursor positions; the flush emits TOTAL deltas since
+	// gesture start (viewport px), at most once per animation frame
+	let startX = 0
+	let startY = 0
 	let lastX = 0
 	let lastY = 0
 	let frame = null
@@ -41,8 +41,10 @@ export const useResizer = () => {
 		currentResizer.value = resizer
 		isResizing.value = true
 
-		prevX = lastX = e.clientX
-		prevY = lastY = e.clientY
+		startX = lastX = e.clientX
+		startY = lastY = e.clientY
+
+		dimensionDelta.value = { width: 0, height: 0, left: 0, top: 0 }
 
 		window.addEventListener('mousemove', resize)
 		window.addEventListener('mouseup', stopResize, { once: true })
@@ -74,13 +76,11 @@ export const useResizer = () => {
 	const flushResize = () => {
 		frame = null
 
-		let diffX = prevX - lastX
-		let diffY = prevY - lastY
+		let diffX = startX - lastX
+		let diffY = startY - lastY
 
 		let diffLeft = 0
 		let diffTop = 0
-
-		if (!diffX && !diffY) return
 
 		switch (currentResizer.value) {
 			case 'text-left':
@@ -132,9 +132,6 @@ export const useResizer = () => {
 		}
 
 		dimensionDelta.value = getDimensionDelta(diffX, diffY, diffLeft, diffTop)
-
-		prevX = lastX
-		prevY = lastY
 	}
 
 	const resize = (e) => {
