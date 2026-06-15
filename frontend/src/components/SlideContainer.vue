@@ -2,13 +2,7 @@
 	<div ref="slideContainer" class="flex size-full" @dragenter="showOverlay">
 		<!-- when mounting place slide directly in the center of the visible container -->
 		<!-- 1/2 width of viewport + 1/2 width of offset caused due to thinner navigation panel -->
-		<div
-			ref="slideRef"
-			:style="slideStyles"
-			:class="slideClasses"
-			@contextmenu.prevent
-			@dblclick="handleSlideDoubleClick"
-		>
+		<div ref="slideRef" :style="slideStyles" :class="slideClasses" @contextmenu.prevent>
 			<SelectionBox
 				ref="selectionBox"
 				v-if="!inReadonlyMode"
@@ -79,7 +73,6 @@ import {
 	setEditableState,
 	duplicateElements,
 	activeElements,
-	addTextElement,
 	cropSelectionToFitContent,
 } from '@/stores/element'
 
@@ -583,12 +576,4 @@ watch(
 		emit('update:hasOngoingInteraction', newVal)
 	},
 )
-
-const handleSlideDoubleClick = (e) => {
-	if (inReadonlyMode.value || e.target !== e.currentTarget) return
-	addTextElement('', {
-		left: (e.clientX - slideBounds.left) / scale.value,
-		top: (e.clientY - slideBounds.top) / scale.value,
-	})
-}
 </script>
