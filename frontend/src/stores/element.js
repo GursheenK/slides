@@ -678,7 +678,10 @@ const resetFocus = () => {
 }
 
 const getElementPosition = (elementId) => {
-	const elementRect = getElementDiv(elementId).getBoundingClientRect()
+	const elementDiv = getElementDiv(elementId)
+	if (!elementDiv) return { left: 0, top: 0, right: 0, bottom: 0 }
+
+	const elementRect = elementDiv.getBoundingClientRect()
 
 	const elementLeft = (elementRect.left - slideBounds.left) / slideBounds.scale
 	const elementTop = (elementRect.top - slideBounds.top) / slideBounds.scale
@@ -695,7 +698,15 @@ const getElementPosition = (elementId) => {
 
 const getElementLayoutPosition = (element) => {
 	const elementDiv = getElementDiv(element.id)
-	if (!elementDiv) return getElementPosition(element.id)
+	// no rendered node yet: fall back to the element's stored bounds
+	if (!elementDiv) {
+		return {
+			left: element.left,
+			top: element.top,
+			right: element.left + (element.width || 0),
+			bottom: element.top + (element.height || 0),
+		}
+	}
 
 	return {
 		left: element.left,
@@ -720,7 +731,7 @@ const isWithinOverlappingBounds = (outer, inner) => {
 	return withinWidth && withinHeight
 }
 
-const addFixedWidthToElement = (deltaWidth) => {
+const addFixedWidthToElement = () => {
 	const elementDiv = getElementDiv(activeElement.value.id)
 	if (elementDiv) {
 		const rect = elementDiv.getBoundingClientRect()

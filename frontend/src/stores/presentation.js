@@ -1,6 +1,5 @@
 import { ref, computed } from 'vue'
 import { createResource, call, createDocumentResource } from 'frappe-ui'
-import { isEqual } from 'lodash'
 
 import { router } from '@/router'
 import { slides } from './slide'
@@ -222,42 +221,6 @@ const getCompositePresentationResource = (name) => {
 	})
 }
 
-const hasSlideChanged = (originalState, slideState) => {
-	const keysToCompare = [
-		'background',
-		'transition',
-		'transitionDuration',
-		'fadeUnmatchedElements',
-	]
-
-	for (const key of keysToCompare) {
-		if (slideState[key] != originalState[key]) return true
-	}
-
-	if (slideState.clientId != originalState.clientId) {
-		return true
-	}
-
-	const currElements = parseElements(slideState.elements)
-	const origElements = parseElements(originalState.elements)
-
-	return !isEqual(currElements, origElements)
-}
-
-const hasStateChanged = (original, current) => {
-	if (original.length != current.length) return true
-
-	let hasChanged = false
-	for (let i = 0; i < current.length; i++) {
-		if (hasSlideChanged(original[i], current[i])) {
-			hasChanged = true
-			break
-		}
-	}
-
-	return hasChanged
-}
-
 const savePresentationDoc = async (updatedSlides) => {
 	const newSlides = updatedSlides.map((slide) => {
 		const { thumbnail, ...slideData } = slide
@@ -362,7 +325,6 @@ export {
 	presentationTheme,
 	inReadonlyMode,
 	updatePresentationTitle,
-	hasStateChanged,
 	savePresentationDoc,
 	initPresentationDoc,
 	deletePresentation,
