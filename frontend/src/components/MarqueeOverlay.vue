@@ -12,6 +12,7 @@ import {
 	resetFocus,
 	isWithinOverlappingBounds,
 } from '@/stores/element'
+import { getElementDiv } from '@/stores/elementRegistry'
 
 const slideDiv = inject('slideDiv')
 const slideContainerDiv = inject('slideContainerDiv')
@@ -76,6 +77,82 @@ const updateSelection = (e) => {
 	marqueeRect.height = Math.abs(y - startY)
 }
 
+const getRotatedRectCorners = (center, halfWidth, halfHeight, rotation) => {
+	const radians = (rotation * Math.PI) / 180
+	const cos = Math.cos(radians)
+	const sin = Math.sin(radians)
+
+	const cornerAt = (x, y) => ({
+		x: center.x + x * cos - y * sin,
+		y: center.y + x * sin + y * cos,
+	})
+
+	return [
+		cornerAt(-halfWidth, -halfHeight),
+		cornerAt(halfWidth, -halfHeight),
+		cornerAt(halfWidth, halfHeight),
+		cornerAt(-halfWidth, halfHeight),
+	]
+}
+
+const getRectCorners = (bounds) => [
+	{ x: bounds.left, y: bounds.top },
+	{ x: bounds.right, y: bounds.top },
+	{ x: bounds.right, y: bounds.bottom },
+	{ x: bounds.left, y: bounds.bottom },
+]
+
+const getProjectedSpan = (corners, axis) => {
+	const distances = corners.map((corner) => corner.x * axis.x + corner.y * axis.y)
+	return { min: Math.min(...distances), max: Math.max(...distances) }
+}
+
+const spansOverlap = (a, b) => a.min <= b.max && b.min <= a.max
+
+const rectsOverlap = (cornersA, cornersB, axes) =>
+	axes.every((axis) =>
+		spansOverlap(getProjectedSpan(cornersA, axis), getProjectedSpan(cornersB, axis)),
+	)
+
+// a rotated element's bounding box is mostly empty space, so test the marquee
+// against the element's actual rotated rectangle instead.
+const isRotatedElementWithinMarquee = (element, marqueeBounds) => {
+	const div = getElementDiv(element.id)
+	if (!div) return false
+
+	// the rotated rect shares its centre with the axis-aligned bounding box
+	const boundingBox = getElementPosition(element.id)
+	const center = {
+		x: (boundingBox.left + boundingBox.right) / 2,
+		y: (boundingBox.top + boundingBox.bottom) / 2,
+	}
+
+	const elementCorners = getRotatedRectCorners(
+		center,
+		div.offsetWidth / 2,
+		div.offsetHeight / 2,
+		element.rotation,
+	)
+	const marqueeCorners = getRectCorners(marqueeBounds)
+
+	// the marquee's edges run along x/y; the element's run along its rotated axes
+	const radians = (element.rotation * Math.PI) / 180
+	const elementAxis = { x: Math.cos(radians), y: Math.sin(radians) }
+	const axes = [
+		{ x: 1, y: 0 },
+		{ x: 0, y: 1 },
+		elementAxis,
+		{ x: -elementAxis.y, y: elementAxis.x },
+	]
+
+	return rectsOverlap(elementCorners, marqueeCorners, axes)
+}
+
+const isElementWithinMarquee = (element, marqueeBounds) => {
+	if (element.rotation) return isRotatedElementWithinMarquee(element, marqueeBounds)
+	return isWithinOverlappingBounds(marqueeBounds, getElementPosition(element.id))
+}
+
 const getElementsWithinMarquee = () => {
 	const marqueeBounds = {
 		left: marqueeRect.left,
@@ -84,17 +161,9 @@ const getElementsWithinMarquee = () => {
 		bottom: marqueeRect.top + marqueeRect.height,
 	}
 
-	const elements = []
-
-	currentSlide.value.elements.forEach((element) => {
-		const elementPosition = getElementPosition(element.id)
-
-		if (isWithinOverlappingBounds(marqueeBounds, elementPosition)) {
-			elements.push(element.id)
-		}
-	})
-
-	return elements
+	return currentSlide.value.elements
+		.filter((element) => isElementWithinMarquee(element, marqueeBounds))
+		.map((element) => element.id)
 }
 
 const endSelection = () => {
