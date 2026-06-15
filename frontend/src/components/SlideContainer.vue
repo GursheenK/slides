@@ -97,7 +97,13 @@ import { useSnapping } from '@/composables/useSnapping'
 import { editElementCommand, batchCommand } from '@/stores/commands'
 
 import { isCmdOrCtrl } from '@/utils/helpers'
-import { minElementSizes } from '@/utils/constants'
+import {
+	getResizedBox,
+	getResizedLine,
+	getResizedTextBox,
+	isAspectLocked,
+	getMinSizeForElement,
+} from '@/utils/resize'
 
 const props = defineProps({
 	highlight: Boolean,
@@ -113,7 +119,7 @@ const selectionBoxRef = useTemplateRef('selectionBox')
 
 const { isDragging, positionDelta, startDragging } = useDragAndDrop()
 
-const { isResizing, dimensionDelta, currentResizer, resizeCursor, startResize } = useResizer()
+const { isResizing, pointerDelta, currentResizer, resizeCursor, startResize } = useResizer()
 
 const { isRotating, rotationDelta, startRotate, resetRotation } = useRotator()
 
@@ -221,7 +227,7 @@ const triggerDrag = (e, id) => {
 
 		// anchor synchronously: the drag math must never depend on watcher
 		// flush order or on a previous gesture's state
-		dragAnchor = {
+		dragStartBounds = {
 			left: selectionBounds.left,
 			top: selectionBounds.top,
 		}
@@ -332,161 +338,96 @@ const elementOffset = reactive({
 })
 
 // selection bounds at drag start — captured synchronously in triggerDrag
-let dragAnchor = null
+let dragStartBounds = null
 
 const handlePositionChange = (total) => {
-	if (!dragAnchor) return
+	if (!dragStartBounds) return
 
-	// snap the desired (cursor-anchored) position, then correct toward it —
-	// the element sits wherever the snapped desired geometry says, so it can
-	// never drift from the cursor
-	const desired = snapForDrag({
-		left: dragAnchor.left + total.left / slideBounds.scale,
-		top: dragAnchor.top + total.top / slideBounds.scale,
+	const target = {
+		left: dragStartBounds.left + total.left / slideBounds.scale,
+		top: dragStartBounds.top + total.top / slideBounds.scale,
 		width: selectionBounds.width,
 		height: selectionBounds.height,
-	})
-
-	const delta = {
-		left: (desired.left - selectionBounds.left) * slideBounds.scale,
-		top: (desired.top - selectionBounds.top) * slideBounds.scale,
 	}
+	const desired = activeElement.value?.rotation ? target : snapForDrag(target)
 
-	if (!delta.left && !delta.top) return
-
-	applyPositionDelta(delta)
+	elementOffset.left = desired.left - dragStartBounds.left
+	elementOffset.top = desired.top - dragStartBounds.top
+	updateSelectionBounds({ left: desired.left, top: desired.top })
 }
 
-const CORNER_RESIZERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
-
-// media corners lock aspect: rendered height follows width through layout,
-// so the cursor's Y axis is discarded and top derives from the width delta
-const applyAspectRatio = (delta) => {
-	if (!CORNER_RESIZERS.includes(currentResizer.value)) return
-
-	const ratio = selectionBounds.width / selectionBounds.height
-
-	delta.height = 0
-	delta.top = ['top-left', 'top-right'].includes(currentResizer.value) ? -delta.width / ratio : 0
-}
-
-const getMinSizes = () => {
-	return minElementSizes[activeElement.value?.type] ?? minElementSizes.default
-}
-
-// live size during a gesture (selectionBounds lag a frame behind the observer)
-const getCurrentSize = () => ({
-	width: (activeElement.value?.width ?? selectionBounds.width) + elementOffset.width,
-	height: (activeElement.value?.height ?? selectionBounds.height) + elementOffset.height,
-})
-
-// fraction (0..1) of a shrink that fits above the minimum; growing always fits
-const allowedShrinkFraction = (deltaPx, current, min) => {
-	if (deltaPx >= 0) return 1
-
-	const requestedShrink = -deltaPx / slideBounds.scale
-	return Math.min(1, Math.max(0, (current - min) / requestedShrink))
-}
-
-// clamp each axis at its minimum, scaling the linked position delta with it —
-// clamping size alone would let the element slide while pinned
-const clampToMinSizes = (delta) => {
-	const min = getMinSizes()
-	const size = getCurrentSize()
-
-	const widthFactor = allowedShrinkFraction(delta.width, size.width, min.width)
-	const heightFactor = allowedShrinkFraction(delta.height, size.height, min.height)
-
-	delta.width *= widthFactor
-	delta.left *= widthFactor
-
-	delta.height *= heightFactor
-
-	// media corner top derives from width (aspect lock); otherwise top
-	// belongs to the height axis
-	const topFollowsWidth = ['image', 'video'].includes(activeElement.value?.type)
-	delta.top *= topFollowsWidth ? widthFactor : heightFactor
-}
-
-const applyPositionDelta = (delta) => {
-	if (!delta.left && !delta.top) return
-
-	const deltaLeft = delta.left / slideBounds.scale
-	const deltaTop = delta.top / slideBounds.scale
-
-	updateSelectionBounds({
-		left: selectionBounds.left + deltaLeft,
-		top: selectionBounds.top + deltaTop,
-	})
-
-	elementOffset.left += deltaLeft
-	elementOffset.top += deltaTop
-}
-
-const applyDimensionDelta = (delta) => {
-	if (!delta.width && !delta.height) return
-
-	const deltaWidth = delta.width / slideBounds.scale
-	const deltaHeight = delta.height / slideBounds.scale
-
-	elementOffset.width += deltaWidth
-	elementOffset.height += deltaHeight
-}
-
-// selection bounds + dimensions at resize start — captured synchronously in
-// startElementResize, same rule as the drag anchor
-let resizeAnchor = null
+// the element's box + type when the resize began, captured synchronously like dragStartBounds
+let resizeStartBounds = null
 
 const startElementResize = (e, resizer) => {
-	resizeAnchor = {
+	resizeStartBounds = {
 		left: selectionBounds.left,
 		top: selectionBounds.top,
 		width: selectionBounds.width,
 		height: selectionBounds.height,
+		rotation: activeElement.value?.rotation || 0,
+		type: activeElement.value?.type,
 	}
 
 	startResize(e, resizer)
 }
 
-const handleDimensionChange = (total) => {
-	if (!resizeAnchor) return
+const setOffsetFromBox = (box) => {
+	elementOffset.left = box.left - resizeStartBounds.left
+	elementOffset.top = box.top - resizeStartBounds.top
+	elementOffset.width = box.width - resizeStartBounds.width
+	elementOffset.height = box.height - resizeStartBounds.height
 
-	const scale = slideBounds.scale
-	const size = getCurrentSize()
+	updateSelectionBounds({ left: box.left, top: box.top, width: box.width, height: box.height })
+}
 
-	const isMedia = ['image', 'video'].includes(activeElement.value.type)
+const resizeBox = (cursorMovement) => {
+	const box = getResizedBox(resizeStartBounds, currentResizer.value, cursorMovement)
+	if (!box) return
 
-	// snap the desired (cursor-anchored) geometry, then correct toward it —
-	// same model as drag, so the handle can never drift from the cursor.
-	// media only snap their width edges: height/top derive from aspect below
-	const desired = snapForResize(
-		{
-			left: resizeAnchor.left + total.left / scale,
-			top: resizeAnchor.top + total.top / scale,
-			width: resizeAnchor.width + total.width / scale,
-			height: resizeAnchor.height + total.height / scale,
-		},
-		{ axes: isMedia ? ['x'] : ['x', 'y'] },
-	)
+	const axes = isAspectLocked(resizeStartBounds.type) ? ['x'] : ['x', 'y']
+	const snappedBox = resizeStartBounds.rotation ? box : snapForResize(box, { axes })
+	setOffsetFromBox(snappedBox)
+}
 
-	const delta = {
-		width: (desired.width - size.width) * scale,
-		height: (desired.height - size.height) * scale,
-		left: (desired.left - selectionBounds.left) * scale,
-		top: (desired.top - selectionBounds.top) * scale,
-	}
+const resizeLine = (cursorMovement) => {
+	const box = getResizedLine(resizeStartBounds, currentResizer.value, cursorMovement)
 
-	if (!delta.width && !delta.height && !delta.left && !delta.top) return
+	setOffsetFromBox(box)
+	rotationDelta.value = box.rotation - resizeStartBounds.rotation
+}
 
-	if (isMedia) applyAspectRatio(delta)
+const setOffsetFromTextBox = (box) => {
+	const minWidth = getMinSizeForElement(resizeStartBounds.type).width
+	const grabbingRight = currentResizer.value === 'text-right'
 
-	clampToMinSizes(delta)
+	const fixedEdge = grabbingRight ? box.left : box.left + box.width
+	const width = Math.max(minWidth, box.width)
+	const centre = grabbingRight ? fixedEdge + width / 2 : fixedEdge - width / 2
 
-	applyPositionDelta(delta)
+	elementOffset.width = width - resizeStartBounds.width
+	elementOffset.left = centre - (resizeStartBounds.left + resizeStartBounds.width / 2)
+}
 
+const resizeText = (cursorMovement) => {
 	if (!activeElement.value.width) addFixedWidthToElement()
 
-	applyDimensionDelta(delta)
+	const box = getResizedTextBox(resizeStartBounds, currentResizer.value, cursorMovement)
+	const snappedBox = snapForResize(box, { axes: ['x'] })
+	setOffsetFromTextBox(snappedBox)
+}
+
+const handleResize = () => {
+	if (!resizeStartBounds) return
+
+	const cursorMovement = {
+		x: pointerDelta.value.x / slideBounds.scale,
+		y: pointerDelta.value.y / slideBounds.scale,
+	}
+	const handle = currentResizer.value
+	if (handle === 'text-left' || handle === 'text-right') return resizeText(cursorMovement)
+	if (handle === 'line-left' || handle === 'line-right') return resizeLine(cursorMovement)
+	resizeBox(cursorMovement)
 }
 
 const updateSlideBounds = () => {
@@ -529,10 +470,8 @@ watch(
 )
 
 watch(
-	() => dimensionDelta.value,
-	(delta) => {
-		handleDimensionChange(delta)
-	},
+	() => pointerDelta.value,
+	() => handleResize(),
 )
 
 const initSlideAndListeners = () => {

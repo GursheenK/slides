@@ -38,6 +38,8 @@ export const useSnapping = (selectionRef, currentResizer, hasOngoingInteraction)
 		currentSlide.value?.elements.forEach((element) => {
 			if (activeElementIds.value.includes(element.id)) return
 
+			if (element.rotation) return
+
 			const div = getElementDiv(element.id)
 			if (!div) return
 

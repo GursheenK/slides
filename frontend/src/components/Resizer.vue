@@ -7,15 +7,16 @@
 			v-show="resizeHandle.isVisible"
 			:key="resizeHandle.direction"
 			:direction="resizeHandle.direction"
+			:currentResizer="currentResizer"
 			@startResize="(e) => startResize(e, resizeHandle.direction)"
 		/>
 
-		<!-- <ResizeIndicator
+		<ResizeIndicator
 			v-show="currentResizer"
 			:type="elementType"
 			:dimensions="dimensions"
 			:indicatorStyles="indicatorStyles"
-		/> -->
+		/>
 	</div>
 </template>
 
@@ -42,7 +43,7 @@ const props = defineProps({
 const { currentResizer, startResize } = inject('resizer', {})
 
 const showRotateHandle = computed(() => {
-	return ['rectangle', 'circle', 'line', 'image'].includes(props.elementType)
+	return ['rectangle', 'circle', 'image'].includes(props.elementType)
 })
 
 const isResizeHandleVisible = (resizer) => {
@@ -104,13 +105,10 @@ const getLineIndicatorPosition = () => {
 const getMediaIndicatorPosition = () => {
 	const resizer = currentResizer.value
 	const offset = getScaledValue(8)
+	const horizontal = resizer.includes('right') ? { right: offset } : { left: offset }
+	const vertical = resizer.includes('bottom') ? { bottom: offset } : { top: offset }
 
-	return {
-		left: resizer.includes('left') ? offset : 'auto',
-		right: resizer.includes('right') ? offset : 'auto',
-		top: resizer.includes('top') ? offset : 'auto',
-		bottom: resizer.includes('bottom') ? offset : 'auto',
-	}
+	return { ...horizontal, ...vertical }
 }
 
 const getPositionStyles = () => {
