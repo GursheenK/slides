@@ -94,6 +94,7 @@ import {
 	getResizedBox,
 	getResizedLine,
 	getResizedTextBox,
+	getRotatedBoundingBox,
 	isAspectLocked,
 	getMinSizeForElement,
 } from '@/utils/resize'
@@ -333,6 +334,15 @@ const elementOffset = reactive({
 // selection bounds at drag start — captured synchronously in triggerDrag
 let dragStartBounds = null
 
+const snapRotatedPosition = (target, rotation) => {
+	const boundingBox = getRotatedBoundingBox(target, rotation)
+	const snapped = snapForDrag(boundingBox)
+	return {
+		left: target.left + (snapped.left - boundingBox.left),
+		top: target.top + (snapped.top - boundingBox.top),
+	}
+}
+
 const handlePositionChange = (total) => {
 	if (!dragStartBounds) return
 
@@ -342,7 +352,8 @@ const handlePositionChange = (total) => {
 		width: selectionBounds.width,
 		height: selectionBounds.height,
 	}
-	const desired = activeElement.value?.rotation ? target : snapForDrag(target)
+	const rotation = activeElement.value?.rotation
+	const desired = rotation ? snapRotatedPosition(target, rotation) : snapForDrag(target)
 
 	elementOffset.left = desired.left - dragStartBounds.left
 	elementOffset.top = desired.top - dragStartBounds.top
@@ -379,6 +390,8 @@ const resizeBox = (cursorMovement) => {
 	if (!box) return
 
 	const axes = isAspectLocked(resizeStartBounds.type) ? ['x'] : ['x', 'y']
+	// resize runs in the element's rotated local frame; the snap engine works on
+	// screen-axis-aligned boxes, so snapping a rotated resize isn't supported yet
 	const snappedBox = resizeStartBounds.rotation ? box : snapForResize(box, { axes })
 	setOffsetFromBox(snappedBox)
 }

@@ -40,6 +40,18 @@ const getBoxFromCenter = (center, width, height) => ({
 	top: center.y - height / 2,
 })
 
+// the axis-aligned bounding box of `box` once it is rotated about its centre
+export const getRotatedBoundingBox = (box, degrees) => {
+	const radians = (degrees * Math.PI) / 180
+	const cos = Math.abs(Math.cos(radians))
+	const sin = Math.abs(Math.sin(radians))
+
+	const width = box.width * cos + box.height * sin
+	const height = box.width * sin + box.height * cos
+
+	return getBoxFromCenter(getCenter(box), width, height)
+}
+
 // each handle keeps the opposite edge/corner fixed. these signs say where that
 // fixed point sits relative to the centre, along the element's own axes.
 // a 0 means that axis doesn't resize (a side handle).
