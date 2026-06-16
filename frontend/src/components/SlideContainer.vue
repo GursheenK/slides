@@ -13,6 +13,8 @@
 
 			<MarqueeOverlay v-if="!inReadonlyMode" @setIsSelecting="(val) => (isSelecting = val)" />
 
+			<ShapeDrawOverlay v-if="!inReadonlyMode" />
+
 			<SnapGuides :ongoingInteraction="hasOngoingInteraction" :activeGuides="activeGuides" />
 
 			<SlideElement
@@ -52,6 +54,7 @@ import { useResizeObserver } from '@vueuse/core'
 import SnapGuides from '@/components/SnapGuides.vue'
 import SelectionBox from '@/components/SelectionBox.vue'
 import MarqueeOverlay from '@/components/MarqueeOverlay.vue'
+import ShapeDrawOverlay from '@/components/ShapeDrawOverlay.vue'
 import SlideElement from '@/components/SlideElement.vue'
 import DropTargetOverlay from '@/components/DropTargetOverlay.vue'
 import OverflowContentOverlay from '@/components/OverflowContentOverlay.vue'

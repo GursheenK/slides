@@ -31,6 +31,7 @@ import {
 const activeElementIds = ref([])
 const focusElementId = ref(null)
 const pairElementId = ref(null)
+const pendingShapeType = ref(null)
 
 const activeElements = computed(() => {
 	let elements = []
@@ -175,12 +176,12 @@ const getShapeDefaults = (shapeType) => {
 	}
 }
 
-const addShapeElement = async (shapeType) => {
+const addShapeElement = async (shapeType, bounds = null) => {
 	if (!shapeType) return
 
 	const {
-		width,
-		height,
+		width: defaultWidth,
+		height: defaultHeight,
 		fillColor,
 		strokeColor,
 		strokeWidth,
@@ -193,13 +194,19 @@ const addShapeElement = async (shapeType) => {
 	const slideWidth = slideBounds.width / slideBounds.scale
 	const slideHeight = slideBounds.height / slideBounds.scale
 
+	// Lines always use the default height regardless of drawn bounds
+	const width = bounds?.width ?? defaultWidth
+	const height = elementShapeType === 'line' ? defaultHeight : (bounds?.height ?? defaultHeight)
+	const left = bounds?.left ?? (slideWidth - width) / 2
+	const top = bounds?.top ?? (slideHeight - height) / 2
+
 	const element = {
 		id: generateUniqueId(),
 		zIndex: currentSlide.value.elements.length + 1,
-		width: width,
-		height: height,
-		left: (slideWidth - width) / 2,
-		top: (slideHeight - height) / 2,
+		width,
+		height,
+		left,
+		top,
 		opacity: 100,
 		rotation: 0,
 		type: 'shape',
@@ -961,6 +968,7 @@ export {
 	activeElementIds,
 	focusElementId,
 	pairElementId,
+	pendingShapeType,
 	activeElements,
 	activeElement,
 	setActiveElements,

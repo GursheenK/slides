@@ -1,8 +1,8 @@
 <template>
-	<div v-if="isSelecting" :style="marqueeStyles"></div>
+	<div v-if="isDrawing" :style="marqueeStyles"></div>
 </template>
 <script setup>
-import { ref, reactive, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { computed, inject, onMounted, onBeforeUnmount } from 'vue'
 
 import { currentSlide, slideBounds } from '@/stores/slide'
 import {
@@ -11,8 +11,10 @@ import {
 	getElementPosition,
 	resetFocus,
 	isWithinOverlappingBounds,
+	pendingShapeType,
 } from '@/stores/element'
 import { getElementDiv } from '@/stores/elementRegistry'
+import { useDrawRect } from '@/composables/useDrawRect'
 
 const slideDiv = inject('slideDiv')
 const slideContainerDiv = inject('slideContainerDiv')
@@ -21,61 +23,20 @@ const emit = defineEmits(['setIsSelecting'])
 
 const SELECTION_START_THRESHOLD = 4
 
-const isSelecting = ref(false)
-
-const marqueeRect = reactive({
-	left: 0,
-	top: 0,
-	width: 0,
-	height: 0,
-})
-
-let startX = 0
-let startY = 0
+const { isDrawing, drawRect, toSlideCoords, startDrawing, cancel } = useDrawRect()
 
 const marqueeStyles = computed(() => ({
 	position: 'absolute',
 	backgroundColor: '#70b6f025',
 	outline: `#70B6F092 solid ${0.1 / slideBounds.scale}px`,
-	width: `${marqueeRect.width}px`,
-	height: `${marqueeRect.height}px`,
-	left: `${marqueeRect.left}px`,
-	top: `${marqueeRect.top}px`,
+	width: `${drawRect.width}px`,
+	height: `${drawRect.height}px`,
+	left: `${drawRect.left}px`,
+	top: `${drawRect.top}px`,
 	boxSizing: 'border-box',
 	zIndex: 9999,
 	pointerEvents: 'none',
 }))
-
-const toSlideCoords = (e) => ({
-	x: (e.clientX - slideBounds.left) / slideBounds.scale,
-	y: (e.clientY - slideBounds.top) / slideBounds.scale,
-})
-
-const initSelection = (e) => {
-	// drawing a marquee always starts from an empty selection
-	activeElementIds.value = []
-
-	isSelecting.value = true
-	emit('setIsSelecting', true)
-
-	const { x, y } = toSlideCoords(e)
-	startX = x
-	startY = y
-
-	Object.assign(marqueeRect, { left: x, top: y, width: 0, height: 0 })
-
-	document.addEventListener('mousemove', updateSelection)
-	document.addEventListener('mouseup', endSelection, { once: true })
-}
-
-const updateSelection = (e) => {
-	const { x, y } = toSlideCoords(e)
-
-	marqueeRect.left = Math.min(x, startX)
-	marqueeRect.top = Math.min(y, startY)
-	marqueeRect.width = Math.abs(x - startX)
-	marqueeRect.height = Math.abs(y - startY)
-}
 
 const getRotatedRectCorners = (center, halfWidth, halfHeight, rotation) => {
 	const radians = (rotation * Math.PI) / 180
@@ -153,12 +114,12 @@ const isElementWithinMarquee = (element, marqueeBounds) => {
 	return isWithinOverlappingBounds(marqueeBounds, getElementPosition(element.id))
 }
 
-const getElementsWithinMarquee = () => {
+const getElementsWithinMarquee = (rect) => {
 	const marqueeBounds = {
-		left: marqueeRect.left,
-		top: marqueeRect.top,
-		right: marqueeRect.left + marqueeRect.width,
-		bottom: marqueeRect.top + marqueeRect.height,
+		left: rect.left,
+		top: rect.top,
+		right: rect.left + rect.width,
+		bottom: rect.top + rect.height,
 	}
 
 	return currentSlide.value.elements
@@ -166,16 +127,14 @@ const getElementsWithinMarquee = () => {
 		.map((element) => element.id)
 }
 
-const endSelection = () => {
-	isSelecting.value = false
-	emit('setIsSelecting', false)
-
-	document.removeEventListener('mousemove', updateSelection)
-
-	const selectedElements = getElementsWithinMarquee()
-	if (selectedElements.length) setActiveElements(selectedElements)
-
-	Object.assign(marqueeRect, { left: 0, top: 0, width: 0, height: 0 })
+const initSelection = (e) => {
+	activeElementIds.value = []
+	emit('setIsSelecting', true)
+	startDrawing(e, (finalRect) => {
+		emit('setIsSelecting', false)
+		const selectedElements = getElementsWithinMarquee(finalRect)
+		if (selectedElements.length) setActiveElements(selectedElements)
+	})
 }
 
 let cancelSelectionIntent = null
@@ -211,7 +170,7 @@ const watchForSelectionIntent = (downEvent) => {
 }
 
 const handleMouseDown = (e) => {
-	// marquee / deselect only start from the empty slide or container area
+	if (pendingShapeType.value) return
 	if (![slideDiv.value, slideContainerDiv.value].includes(e.target)) return
 
 	watchForSelectionIntent(e)
@@ -230,7 +189,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
 	cancelSelectionIntent?.()
 	document.removeEventListener('mousedown', handleMouseDown)
-	document.removeEventListener('mousemove', updateSelection)
-	document.removeEventListener('mouseup', endSelection)
+	cancel()
 })
 </script>

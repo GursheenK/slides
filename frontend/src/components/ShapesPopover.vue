@@ -160,13 +160,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { Popover, Tooltip } from 'frappe-ui'
 
-import { addShapeElement } from '@/stores/element'
+import { pendingShapeType } from '@/stores/element'
 
 const addShape = (shapeType, close) => {
-	addShapeElement(shapeType)
+	pendingShapeType.value = shapeType
 	close()
 }
 </script>
