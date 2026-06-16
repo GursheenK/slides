@@ -28,15 +28,18 @@ import AppearanceProperties from '@/components/AppearanceProperties.vue'
 import { useDeferredCommit } from '@/composables/useDeferredCommit'
 
 import { currentSlide } from '@/stores/slide'
-import { activeElement, activeElementIds } from '@/stores/element'
+import { activeElement, activeElementIds, focusElementId } from '@/stores/element'
 import { commandHistory } from '@/stores/historyMeta'
 import { handleScrollBarWheelEvent } from '@/utils/helpers'
 import { editElementCommand, editSlideCommand } from '@/stores/commands'
 
 const activeProperties = computed(() => {
-	const elementType = activeElement.value?.type
+	const element = activeElement.value
+	const isEditingShapeText = element?.type === 'shape' && focusElementId.value === element.id
 
-	switch (elementType) {
+	if (isEditingShapeText) return TextProperties
+
+	switch (element?.type) {
 		case 'text':
 			return TextProperties
 		case 'image':

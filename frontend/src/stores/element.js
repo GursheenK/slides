@@ -92,6 +92,18 @@ const getElementContent = (element) => {
 	return generateHTML(contentJSON, extensions)
 }
 
+const getInitialShapeTextContent = (shapeElement) => {
+	return getElementContent({
+		textAlign: 'center',
+		lineHeight: 1.5,
+		fontSize: 28,
+		fontFamily: 'Inter',
+		color: guessTextColorFromBackground(shapeElement.fillColor || '#ffffff'),
+		letterSpacing: 0,
+		innerText: '​',
+	})
+}
+
 const getShapeDefaults = (shapeType) => {
 	let width, height, strokeColor, strokeWidth, borderRadius, elementShapeType
 	let markerStart = false
@@ -784,13 +796,17 @@ const blurAndSaveContent = (element) => {
 	activeEditor.value.setEditable(false)
 	activeEditor.value.commands.blur()
 
-	const text = activeEditor.value?.getText() || ''
-	const isEmpty = text.replace(/\u200B/g, '') === ''
+	const isEmpty = (activeEditor.value?.getText() || '').replace(/\u200B/g, '') === ''
 
-	if (isEmpty) {
-		deleteElements(null, [element.id])
+	if (!isEmpty) return updateElementContent(element)
+
+	if (element.type === 'shape') {
+		if (element.content) {
+			element.content = null
+			markDirty()
+		}
 	} else {
-		updateElementContent(element)
+		deleteElements(null, [element.id])
 	}
 }
 
@@ -812,19 +828,47 @@ const initEditorForElement = (element) => {
 	}
 }
 
+const replaceEditor = (fn) =>
+	nextTick(() => {
+		activeEditor.value?.destroy()
+		activeEditor.value = null
+		fn?.()
+		editorOldText = activeEditor.value?.getText()
+	})
+
 watch(
 	() => activeElement.value,
 	(element, oldElement) => {
-		if (oldElement?.type == 'text') {
+		if (['text', 'shape'].includes(oldElement?.type) && activeEditor.value) {
 			blurAndSaveContent(oldElement)
 		}
+		replaceEditor(() => initEditorForElement(element))
+	},
+)
 
-		nextTick(() => {
-			activeEditor.value?.destroy()
-			activeEditor.value = null
-			initEditorForElement(element)
-			editorOldText = activeEditor.value?.getText()
-		})
+// focusElementId changing to a shape's id enters text-edit mode for that shape.
+// The activeElement watch won't fire then (same element object), so this handles it.
+// Also handles the inverse: focusElementId cleared while still on the same shape.
+watch(
+	() => focusElementId.value,
+	(id, oldId) => {
+		if (id) {
+			const element = currentSlide.value?.elements.find((el) => el.id === id)
+			if (element?.type !== 'shape') return
+			replaceEditor(() => {
+				initTextEditor(
+					element.id,
+					element.content || getInitialShapeTextContent(element),
+					true,
+				)
+				setEditableState()
+			})
+		} else if (oldId && activeEditor.value) {
+			const oldElement = currentSlide.value?.elements.find((el) => el.id === oldId)
+			if (oldElement?.type !== 'shape') return
+			blurAndSaveContent(oldElement)
+			replaceEditor()
+		}
 	},
 )
 

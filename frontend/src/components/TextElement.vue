@@ -46,14 +46,21 @@ const props = defineProps({
 		type: String,
 		default: 'editor',
 	},
+	// When true (inside a shape), the editor mounts only when this element is
+	// explicitly focused for text editing — not just when it's selected.
+	embedded: {
+		type: Boolean,
+		default: false,
+	},
 })
 
 const inReadonlyMode = inject('inReadonlyMode', ref(false))
 const inSlideShowMode = inject('inSlideShowMode', ref(false))
 
 const showEditor = computed(() => {
-	if (!activeElement.value) return false
-	return activeElement.value.id == element.value.id && props.mode == 'editor'
+	if (props.mode != 'editor') return false
+	if (props.embedded) return focusElementId.value == element.value.id && !!activeEditor.value
+	return activeElement.value?.id == element.value.id
 })
 
 const element = defineModel('element', {
@@ -81,10 +88,8 @@ const handleMouseDown = (e) => {
 }
 
 const handleDoubleClick = (e) => {
-	if (inSlideShowMode.value || isEditable.value || inReadonlyMode.value) {
-		e.stopPropagation()
-		return
-	}
+	e.stopPropagation()
+	if (inSlideShowMode.value || isEditable.value || inReadonlyMode.value) return
 
 	activeElementIds.value = [element.value.id]
 	focusElementId.value = element.value.id
