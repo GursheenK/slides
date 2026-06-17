@@ -844,12 +844,20 @@ const initEditorForElement = (element) => {
 	}
 }
 
+const findSlideElement = (id) => currentSlide.value?.elements.find((el) => el.id === id)
+
 const replaceEditor = (fn) =>
 	nextTick(() => {
 		activeEditor.value?.destroy()
 		activeEditor.value = null
 		fn?.()
 		editorOldText = activeEditor.value?.getText()
+	})
+
+const initShapeEditor = (element) =>
+	replaceEditor(() => {
+		initTextEditor(element.id, element.content || getInitialShapeTextContent(element), true)
+		setEditableState()
 	})
 
 watch(
@@ -864,23 +872,16 @@ watch(
 
 // focusElementId changing to a shape's id enters text-edit mode for that shape.
 // The activeElement watch won't fire then (same element object), so this handles it.
-// Also handles the inverse: focusElementId cleared while still on the same shape.
+// Also handles the inverse: focusElementId cleared while still on the same shape (Escape).
 watch(
 	() => focusElementId.value,
 	(id, oldId) => {
 		if (id) {
-			const element = currentSlide.value?.elements.find((el) => el.id === id)
-			if (element?.type !== 'shape') return
-			replaceEditor(() => {
-				initTextEditor(
-					element.id,
-					element.content || getInitialShapeTextContent(element),
-					true,
-				)
-				setEditableState()
-			})
+			const element = findSlideElement(id)
+			if (element?.type === 'shape') initShapeEditor(element)
 		} else if (oldId && activeEditor.value) {
-			const oldElement = currentSlide.value?.elements.find((el) => el.id === oldId)
+			if (activeElement.value?.id !== oldId) return
+			const oldElement = findSlideElement(oldId)
 			if (oldElement?.type !== 'shape') return
 			blurAndSaveContent(oldElement)
 			replaceEditor()

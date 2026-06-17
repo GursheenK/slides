@@ -4,6 +4,7 @@ import { slideBounds } from '@/stores/slide'
 // Shared rect-drawing logic used by MarqueeOverlay and ShapeDrawOverlay
 export function useDrawRect() {
 	const isDrawing = ref(false)
+	const shiftLocked = ref(false)
 	const drawRect = reactive({ left: 0, top: 0, width: 0, height: 0 })
 	const startPoint = reactive({ x: 0, y: 0 })
 	const endPoint = reactive({ x: 0, y: 0 })
@@ -21,10 +22,20 @@ export function useDrawRect() {
 		const { x, y } = toSlideCoords(e)
 		endPoint.x = x
 		endPoint.y = y
-		drawRect.left = Math.min(x, startX)
-		drawRect.top = Math.min(y, startY)
-		drawRect.width = Math.abs(x - startX)
-		drawRect.height = Math.abs(y - startY)
+		const dx = x - startX
+		const dy = y - startY
+		if (shiftLocked.value) {
+			const size = Math.min(Math.abs(dx), Math.abs(dy))
+			drawRect.left = dx >= 0 ? startX : startX - size
+			drawRect.top = dy >= 0 ? startY : startY - size
+			drawRect.width = size
+			drawRect.height = size
+		} else {
+			drawRect.left = Math.min(x, startX)
+			drawRect.top = Math.min(y, startY)
+			drawRect.width = Math.abs(dx)
+			drawRect.height = Math.abs(dy)
+		}
 	}
 
 	const endDrawing = () => {
@@ -59,5 +70,14 @@ export function useDrawRect() {
 		endDrawing()
 	}
 
-	return { isDrawing, drawRect, startPoint, endPoint, toSlideCoords, startDrawing, cancel }
+	return {
+		isDrawing,
+		shiftLocked,
+		drawRect,
+		startPoint,
+		endPoint,
+		toSlideCoords,
+		startDrawing,
+		cancel,
+	}
 }

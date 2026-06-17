@@ -15,12 +15,25 @@ import { pendingShapeType, addShapeElement } from '@/stores/element'
 import { slideBounds } from '@/stores/slide'
 import { useDrawRect } from '@/composables/useDrawRect'
 
-const { isDrawing, drawRect, startPoint, endPoint, startDrawing, cancel } = useDrawRect()
+const { isDrawing, shiftLocked, drawRect, startPoint, endPoint, startDrawing, cancel } =
+	useDrawRect()
 
 const MIN_SIZE = 10
 
 const isLine = computed(
 	() => pendingShapeType.value === 'line' || pendingShapeType.value === 'line with arrows',
+)
+
+const snapTo45 = (p1, p2) => {
+	const dx = p2.x - p1.x
+	const dy = p2.y - p1.y
+	const length = Math.hypot(dx, dy)
+	const snappedAngle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4)
+	return { x: p1.x + length * Math.cos(snappedAngle), y: p1.y + length * Math.sin(snappedAngle) }
+}
+
+const activeEndPoint = computed(() =>
+	shiftLocked.value && isLine.value ? snapTo45(startPoint, endPoint) : endPoint,
 )
 
 const previewBorderRadius = computed(() => {
@@ -31,12 +44,11 @@ const previewBorderRadius = computed(() => {
 
 const linePreviewStyles = computed(() => {
 	const { x: x1, y: y1 } = startPoint
-	const { x: x2, y: y2 } = endPoint
+	const { x: x2, y: y2 } = activeEndPoint.value
 	const dx = x2 - x1
 	const dy = y2 - y1
-	const length = Math.sqrt(dx ** 2 + dy ** 2)
+	const length = Math.hypot(dx, dy)
 	const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-
 	return {
 		position: 'absolute',
 		left: `${x1}px`,
@@ -71,10 +83,11 @@ const previewStyles = computed(() => {
 })
 
 const handleMouseDown = (e) => {
-	startDrawing(e, (rect, p1, p2) => {
-		const bounds = isLine.value ? { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y } : rect
+	startDrawing(e, (rect, start, end) => {
+		if (shiftLocked.value && isLine.value) end = snapTo45(start, end)
+		const bounds = isLine.value ? { x1: start.x, y1: start.y, x2: end.x, y2: end.y } : rect
 		const isBigEnough = isLine.value
-			? Math.hypot(p2.x - p1.x, p2.y - p1.y) >= MIN_SIZE
+			? Math.hypot(end.x - start.x, end.y - start.y) >= MIN_SIZE
 			: rect.width >= MIN_SIZE && rect.height >= MIN_SIZE
 
 		if (isBigEnough) addShapeElement(pendingShapeType.value, bounds)
@@ -83,15 +96,24 @@ const handleMouseDown = (e) => {
 }
 
 const handleKeyDown = (e) => {
+	if (e.key === 'Shift' && isDrawing.value) shiftLocked.value = true
 	if (e.key === 'Escape' && pendingShapeType.value) {
 		cancel()
 		pendingShapeType.value = null
 	}
 }
 
-onMounted(() => document.addEventListener('keydown', handleKeyDown))
+const handleKeyUp = (e) => {
+	if (e.key === 'Shift') shiftLocked.value = false
+}
+
+onMounted(() => {
+	document.addEventListener('keydown', handleKeyDown)
+	document.addEventListener('keyup', handleKeyUp)
+})
 onBeforeUnmount(() => {
 	document.removeEventListener('keydown', handleKeyDown)
+	document.removeEventListener('keyup', handleKeyUp)
 	cancel()
 })
 </script>
