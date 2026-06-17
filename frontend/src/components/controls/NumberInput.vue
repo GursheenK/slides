@@ -6,7 +6,7 @@
 		<input
 			type="number"
 			:class="inputClasses"
-			:value="Math.round(modelValue)"
+			:value="modelValue"
 			:disabled="disabled"
 			@change="changeValue"
 		/>

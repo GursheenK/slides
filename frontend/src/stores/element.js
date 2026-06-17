@@ -152,17 +152,17 @@ const getShapeDefaults = (shapeType) => {
 			break
 		case 'line':
 			width = 300
-			height = 2
+			height = 1
 			strokeColor = guessTextColorFromBackground(currentSlide.value.background)
-			strokeWidth = 2
+			strokeWidth = 1
 			borderRadius = 0
 			elementShapeType = 'line'
 			break
 		case 'line with arrows':
 			width = 300
-			height = 20
+			height = 1
 			strokeColor = guessTextColorFromBackground(currentSlide.value.background)
-			strokeWidth = 2
+			strokeWidth = 1
 			borderRadius = 0
 			elementShapeType = 'line'
 			markerStart = true
