@@ -73,18 +73,28 @@
 				:filter="shadow.hasShadow ? `url(#${shadowFilterId})` : null"
 			/>
 
-			<line
-				v-else-if="element.shapeType == 'line'"
-				:x1="0"
-				:x2="'100%'"
-				:y1="element.strokeWidth / 2"
-				:y2="element.strokeWidth / 2"
-				:stroke="`${element.strokeColor}`"
-				:stroke-width="`${element.strokeWidth}px`"
-				:marker-start="element.markerStart ? `url(#${markerStartId})` : null"
-				:marker-end="element.markerEnd ? `url(#${markerEndId})` : null"
-				:filter="shadow.hasShadow ? `url(#${shadowFilterId})` : null"
-			/>
+			<g v-else-if="element.shapeType == 'line'">
+				<line
+					v-if="element.strokeWidth < 10"
+					:x1="0"
+					:x2="'100%'"
+					:y1="element.strokeWidth / 2"
+					:y2="element.strokeWidth / 2"
+					stroke="transparent"
+					stroke-width="16"
+				/>
+				<line
+					:x1="0"
+					:x2="'100%'"
+					:y1="element.strokeWidth / 2"
+					:y2="element.strokeWidth / 2"
+					:stroke="`${element.strokeColor}`"
+					:stroke-width="`${element.strokeWidth}px`"
+					:marker-start="element.markerStart ? `url(#${markerStartId})` : null"
+					:marker-end="element.markerEnd ? `url(#${markerEndId})` : null"
+					:filter="shadow.hasShadow ? `url(#${shadowFilterId})` : null"
+				/>
+			</g>
 		</svg>
 
 		<div
@@ -128,7 +138,8 @@ const element = defineModel('element', {
 const inReadonlyMode = inject('inReadonlyMode', ref(false))
 const inSlideShowMode = inject('inSlideShowMode', ref(false))
 
-const canHaveText = computed(() => element.value?.shapeType !== 'line')
+const isLine = computed(() => element.value?.shapeType === 'line')
+const canHaveText = computed(() => !isLine.value)
 const hasText = computed(() => !!element.value?.content)
 const isEditable = computed(() => focusElementId.value === element.value?.id)
 const textOverlayStyles = computed(() => ({ pointerEvents: isEditable.value ? 'all' : 'none' }))
@@ -141,11 +152,9 @@ const handleDoubleClick = (e) => {
 	focusElementId.value = element.value.id
 }
 
-const hasMarkers = computed(() => {
-	if (!element.value) return false
-	if (element.value.shapeType != 'line') return false
-	return element.value.markerStart || element.value.markerEnd
-})
+const hasMarkers = computed(
+	() => isLine.value && !!(element.value?.markerStart || element.value?.markerEnd),
+)
 
 const markerStartId = computed(() => `line-marker-start-${element.value?.id || ''}`)
 const markerEndId = computed(() => `line-marker-end-${element.value?.id || ''}`)
@@ -158,7 +167,7 @@ const shapeStyles = computed(() => {
 		width: '100%',
 		height: '100%',
 		opacity: (element.value?.opacity || 100) / 100,
-		overflow: hasMarkers.value || shadow.value.hasShadow ? 'visible' : '',
+		overflow: hasMarkers.value || shadow.value.hasShadow || isLine.value ? 'visible' : '',
 	}
 	return {
 		...styles,
