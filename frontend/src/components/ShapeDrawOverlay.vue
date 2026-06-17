@@ -15,7 +15,7 @@ import { pendingShapeType, addShapeElement } from '@/stores/element'
 import { slideBounds } from '@/stores/slide'
 import { useDrawRect } from '@/composables/useDrawRect'
 
-const { isDrawing, drawRect, startDrawing, cancel } = useDrawRect()
+const { isDrawing, drawRect, startPoint, endPoint, startDrawing, cancel } = useDrawRect()
 
 const MIN_SIZE = 10
 
@@ -29,11 +29,32 @@ const previewBorderRadius = computed(() => {
 	return '0'
 })
 
-const previewStyles = computed(() => {
-	const { left, top, width } = drawRect
-	// Lines always render at a fixed thin height regardless of how far the mouse moved vertically
-	const height = isLine.value ? Math.max(2 / slideBounds.scale, 2) : drawRect.height
+const linePreviewStyles = computed(() => {
+	const { x: x1, y: y1 } = startPoint
+	const { x: x2, y: y2 } = endPoint
+	const dx = x2 - x1
+	const dy = y2 - y1
+	const length = Math.sqrt(dx ** 2 + dy ** 2)
+	const angle = Math.atan2(dy, dx) * (180 / Math.PI)
 
+	return {
+		position: 'absolute',
+		left: `${x1}px`,
+		top: `${y1}px`,
+		width: `${length}px`,
+		height: `${Math.max(2 / slideBounds.scale, 2)}px`,
+		transformOrigin: '0 50%',
+		transform: `translate(0, -50%) rotate(${angle}deg)`,
+		backgroundColor: '#70B6F092',
+		zIndex: 10001,
+		pointerEvents: 'none',
+	}
+})
+
+const previewStyles = computed(() => {
+	if (isLine.value) return linePreviewStyles.value
+
+	const { left, top, width, height } = drawRect
 	return {
 		position: 'absolute',
 		left: `${left}px`,
@@ -50,13 +71,13 @@ const previewStyles = computed(() => {
 })
 
 const handleMouseDown = (e) => {
-	startDrawing(e, (finalRect) => {
-		const tooSmall = isLine.value
-			? finalRect.width < MIN_SIZE
-			: finalRect.width < MIN_SIZE || finalRect.height < MIN_SIZE
+	startDrawing(e, (rect, p1, p2) => {
+		const bounds = isLine.value ? { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y } : rect
+		const isBigEnough = isLine.value
+			? Math.hypot(p2.x - p1.x, p2.y - p1.y) >= MIN_SIZE
+			: rect.width >= MIN_SIZE && rect.height >= MIN_SIZE
 
-		if (!tooSmall) addShapeElement(pendingShapeType.value, finalRect)
-
+		if (isBigEnough) addShapeElement(pendingShapeType.value, bounds)
 		pendingShapeType.value = null
 	})
 }

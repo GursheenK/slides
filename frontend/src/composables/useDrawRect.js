@@ -5,6 +5,8 @@ import { slideBounds } from '@/stores/slide'
 export function useDrawRect() {
 	const isDrawing = ref(false)
 	const drawRect = reactive({ left: 0, top: 0, width: 0, height: 0 })
+	const startPoint = reactive({ x: 0, y: 0 })
+	const endPoint = reactive({ x: 0, y: 0 })
 
 	let startX = 0
 	let startY = 0
@@ -17,6 +19,8 @@ export function useDrawRect() {
 
 	const updateRect = (e) => {
 		const { x, y } = toSlideCoords(e)
+		endPoint.x = x
+		endPoint.y = y
 		drawRect.left = Math.min(x, startX)
 		drawRect.top = Math.min(y, startY)
 		drawRect.width = Math.abs(x - startX)
@@ -28,8 +32,10 @@ export function useDrawRect() {
 		document.removeEventListener('mousemove', updateRect)
 		document.removeEventListener('mouseup', endDrawing)
 		const rect = { ...drawRect }
+		const p1 = { ...startPoint }
+		const p2 = { ...endPoint }
 		Object.assign(drawRect, { left: 0, top: 0, width: 0, height: 0 })
-		endCallback?.(rect)
+		endCallback?.(rect, p1, p2)
 		endCallback = null
 	}
 
@@ -37,6 +43,8 @@ export function useDrawRect() {
 		const { x, y } = toSlideCoords(anchorEvent)
 		startX = x
 		startY = y
+		Object.assign(startPoint, { x, y })
+		Object.assign(endPoint, { x, y })
 		endCallback = onEnd
 		isDrawing.value = true
 		Object.assign(drawRect, { left: x, top: y, width: 0, height: 0 })
@@ -51,5 +59,5 @@ export function useDrawRect() {
 		endDrawing()
 	}
 
-	return { isDrawing, drawRect, toSlideCoords, startDrawing, cancel }
+	return { isDrawing, drawRect, startPoint, endPoint, toSlideCoords, startDrawing, cancel }
 }

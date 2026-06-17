@@ -188,6 +188,19 @@ const getShapeDefaults = (shapeType) => {
 	}
 }
 
+const lineBoundsFromEndpoints = ({ x1, y1, x2, y2 }, height) => {
+	const dx = x2 - x1
+	const dy = y2 - y1
+	const length = Math.sqrt(dx ** 2 + dy ** 2)
+	return {
+		width: length,
+		height,
+		left: (x1 + x2) / 2 - length / 2,
+		top: (y1 + y2) / 2 - height / 2,
+		rotation: Math.atan2(dy, dx) * (180 / Math.PI),
+	}
+}
+
 const addShapeElement = async (shapeType, bounds = null) => {
 	if (!shapeType) return
 
@@ -206,7 +219,10 @@ const addShapeElement = async (shapeType, bounds = null) => {
 	const slideWidth = slideBounds.width / slideBounds.scale
 	const slideHeight = slideBounds.height / slideBounds.scale
 
-	// Lines always use the default height regardless of drawn bounds
+	if (elementShapeType === 'line' && bounds?.x1 !== undefined) {
+		bounds = lineBoundsFromEndpoints(bounds, defaultHeight)
+	}
+
 	const width = bounds?.width ?? defaultWidth
 	const height = elementShapeType === 'line' ? defaultHeight : (bounds?.height ?? defaultHeight)
 	const left = bounds?.left ?? (slideWidth - width) / 2
@@ -220,7 +236,7 @@ const addShapeElement = async (shapeType, bounds = null) => {
 		left,
 		top,
 		opacity: 100,
-		rotation: 0,
+		rotation: bounds?.rotation ?? 0,
 		type: 'shape',
 		shapeType: elementShapeType,
 		fillColor,
